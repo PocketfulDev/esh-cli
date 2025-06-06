@@ -55,7 +55,7 @@ jobs:
         go tool cover -func=coverage.out > coverage-func.txt
 
     - name: Parse test results
-      uses: dorny/test-reporter@v1
+      uses: dorny/test-reporter@v2
       if: success() || failure()
       with:
         name: Go Tests

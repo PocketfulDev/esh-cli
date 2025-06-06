@@ -5,7 +5,7 @@ This document explains how the ESH CLI project integrates test results with GitH
 ## 🔧 Test Integration Features
 
 ### 1. GitHub Actions Test Reporter
-We use `dorny/test-reporter@v1` to parse Go test JSON output and display results in GitHub's UI:
+We use `dorny/test-reporter@v2` to parse Go test JSON output and display results in GitHub's UI:
 
 - **Test Results**: Visible in the Actions tab with detailed pass/fail information
 - **Test Duration**: Shows timing for each test
