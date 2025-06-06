@@ -17,8 +17,14 @@
 # Go workspace file
 go.work
 
-# Built binary
+# Built binaries
 esh-cli
+esh-cli-*
+dist/
+
+# Build artifacts
+*.tar.gz
+checksums.txt
 
 # IDE files
 .vscode/
@@ -26,6 +32,7 @@ esh-cli
 *.swp
 *.swo
 *~
+*.sublime-*
 
 # OS generated files
 .DS_Store
@@ -36,5 +43,30 @@ esh-cli
 ehthumbs.db
 Thumbs.db
 
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
 # Config files
 .esh-cli.yaml
+config.yaml
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+
+# Log files
+*.log
+logs/
+
+# Coverage reports
+coverage.out
+coverage.html
+
+# Release artifacts (keep local builds out of git)
+release/
+artifacts/

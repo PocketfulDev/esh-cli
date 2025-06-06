@@ -98,17 +98,17 @@ func IncrementTag(tag string, hotFix bool) string {
 	if tag == "" {
 		return ""
 	}
-	
+
 	// Validate tag format first
 	if !IsTagValid(tag) {
 		return ""
 	}
-	
+
 	parts := strings.Split(tag, "_")
 	if len(parts) < 2 {
 		return ""
 	}
-	
+
 	versionPart := parts[len(parts)-1]
 	prefix := strings.Join(parts[:len(parts)-1], "_")
 
@@ -116,7 +116,7 @@ func IncrementTag(tag string, hotFix bool) string {
 	if len(versionReleaseParts) != 2 {
 		return ""
 	}
-	
+
 	version := versionReleaseParts[0]
 	release := versionReleaseParts[1]
 

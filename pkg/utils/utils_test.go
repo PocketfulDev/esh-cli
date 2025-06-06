@@ -58,9 +58,9 @@ func TestIncrementTag(t *testing.T) {
 		{"stg6_1.2-0", true, "stg6_1.2-0.1"},
 		{"stg6_1.2-1.2", true, "stg6_1.2-1.3"},
 		{"service_stg6_1.2-0", false, "service_stg6_1.2-1"},
-		{"", false, ""}, // empty tag
+		{"", false, ""},            // empty tag
 		{"invalid_tag", false, ""}, // invalid format
-		{"dev_0.0.1", false, ""}, // invalid format (no dash)
+		{"dev_0.0.1", false, ""},   // invalid format (no dash)
 	}
 
 	for _, tt := range tests {

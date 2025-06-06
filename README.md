@@ -16,7 +16,7 @@ A Go CLI tool for managing git tags and deployments. This is a complete refactor
 
 ```bash
 # Add the tap (one-time setup)
-brew tap your-org/your-org-tools
+brew tap eshos/tools
 
 # Install esh-cli
 brew install esh-cli
@@ -25,11 +25,13 @@ brew install esh-cli
 brew upgrade esh-cli
 ```
 
+**Note**: Works with private repositories! See [PRIVATE_REPO_GUIDE.md](PRIVATE_REPO_GUIDE.md) for setup options.
+
 ### Build from source
 
 ```bash
-git clone <repository-url>
-cd esh-cli-git
+git clone https://github.com/PocketfulDev/esh-cli.git
+cd esh-cli
 make build
 ```
 
@@ -41,7 +43,7 @@ make install
 
 ### Download pre-built binaries
 
-Download the latest release from the [releases page](https://github.com/your-org/esh-cli-git/releases).
+Download the latest release from the [releases page](https://github.com/PocketfulDev/esh-cli/releases).
 
 ## Usage
 

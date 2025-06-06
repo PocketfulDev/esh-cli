@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Verify dependencies
+      run: go mod verify
+
+    - name: Run go vet
+      run: go vet ./...
+
+    - name: Run go fmt check
+      run: |
+        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+          echo "The following files are not formatted:"
+          gofmt -s -l .
+          exit 1
+        fi
+
+    - name: Run tests with race detection
+      run: go test -v -race ./...
+
+    - name: Run tests with coverage
+      run: |
+        go test -v -coverprofile=coverage.out -covermode=atomic ./...
+        go tool cover -html=coverage.out -o coverage.html
+
+    - name: Upload coverage reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: |
+          coverage.out
+          coverage.html
+
+    - name: Check test coverage
+      run: |
+        COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        echo "Total test coverage: ${COVERAGE}%"
+        
+        # For CLI tools, we set a lower threshold since main execution paths require integration testing
+        if (( $(echo "$COVERAGE < 30" | bc -l) )); then
+          echo "⚠️ Warning: Test coverage is below 30% threshold"
+          echo "Current coverage: ${COVERAGE}%"
+          echo "Note: CLI tools often have lower unit test coverage due to integration-heavy main logic"
+        else
+          echo "✅ Test coverage meets threshold: ${COVERAGE}%"
+        fi
+        
+        # Check utils package specifically (where business logic resides)
+        UTILS_COVERAGE=$(go test -coverprofile=utils_coverage.out -covermode=atomic ./pkg/utils && go tool cover -func=utils_coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        echo "Utils package coverage: ${UTILS_COVERAGE}%"
+        
+        if (( $(echo "$UTILS_COVERAGE < 60" | bc -l) )); then
+          echo "⚠️ Warning: Utils package coverage is below 60%"
+        else
+          echo "✅ Utils package coverage is good: ${UTILS_COVERAGE}%"
+        fi
+
+    - name: Build test
+      run: |
+        go build -o esh-cli-test .
+        ./esh-cli-test --version
+        ./esh-cli-test --help
+
+  cross-platform-build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Test cross-platform builds
+      run: |
+        # Test building for different platforms
+        GOOS=darwin GOARCH=amd64 go build -o esh-cli-darwin-amd64 .
+        GOOS=darwin GOARCH=arm64 go build -o esh-cli-darwin-arm64 .
+        GOOS=linux GOARCH=amd64 go build -o esh-cli-linux-amd64 .
+        GOOS=linux GOARCH=arm64 go build -o esh-cli-linux-arm64 .
+        
+        echo "✅ All cross-platform builds successful"

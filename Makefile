@@ -41,6 +41,21 @@ test:
 	@echo "Running tests..."
 	go test -v ./...
 
+# Run tests with coverage
+test-coverage:
+	@echo "Running tests with coverage..."
+	go test -v -coverprofile=coverage.out -covermode=atomic ./...
+	go tool cover -html=coverage.out -o coverage.html
+	go tool cover -func=coverage.out
+
+# Run tests with race detection
+test-race:
+	@echo "Running tests with race detection..."
+	go test -v -race ./...
+
+# Run comprehensive tests (coverage + race detection)
+test-all: test-coverage test-race
+
 # Format code
 fmt:
 	@echo "Formatting code..."
@@ -52,7 +67,7 @@ vet:
 	go vet ./...
 
 # Run all checks
-check: fmt vet test
+check: fmt vet test-all
 
 # Show help
 help:
@@ -61,8 +76,11 @@ help:
 	@echo "  release-build - Build binaries for all platforms"
 	@echo "  clean         - Clean build artifacts"
 	@echo "  install       - Install the binary"
-	@echo "  test          - Run tests"
+	@echo "  test          - Run basic tests"
+	@echo "  test-coverage - Run tests with coverage report"
+	@echo "  test-race     - Run tests with race detection"
+	@echo "  test-all      - Run comprehensive tests (coverage + race)"
 	@echo "  fmt           - Format code"
 	@echo "  vet           - Vet code"
-	@echo "  check         - Run fmt, vet, and test"
+	@echo "  check         - Run fmt, vet, and comprehensive tests"
 	@echo "  help          - Show this help"

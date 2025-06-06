@@ -6,8 +6,82 @@ on:
       - 'v*'
 
 jobs:
+  # First run all tests to ensure quality
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Verify dependencies
+      run: go mod verify
+
+    - name: Run go vet
+      run: go vet ./...
+
+    - name: Run go fmt check
+      run: |
+        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+          echo "The following files are not formatted:"
+          gofmt -s -l .
+          exit 1
+        fi
+
+    - name: Run tests with coverage
+      run: |
+        go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+        go tool cover -html=coverage.out -o coverage.html
+
+    - name: Upload coverage to GitHub
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: |
+          coverage.out
+          coverage.html
+
+    - name: Check test coverage threshold
+      run: |
+        COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        echo "Total test coverage: ${COVERAGE}%"
+        
+        if (( $(echo "$COVERAGE < 30" | bc -l) )); then
+          echo "❌ Test coverage is below 30% threshold: ${COVERAGE}%"
+          echo "This is too low for a release. Please add more tests."
+          exit 1
+        else
+          echo "✅ Test coverage meets threshold: ${COVERAGE}%"
+        fi
+        
+        # Also check utils package specifically
+        UTILS_COVERAGE=$(go test -coverprofile=utils_coverage.out -covermode=atomic ./pkg/utils && go tool cover -func=utils_coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        echo "Utils package coverage: ${UTILS_COVERAGE}%"
+        
+        if (( $(echo "$UTILS_COVERAGE < 60" | bc -l) )); then
+          echo "❌ Utils package coverage is below 60%: ${UTILS_COVERAGE}%"
+          echo "Business logic should have better test coverage."
+          exit 1
+        fi
+
+  # Build and release only after tests pass
   release:
     runs-on: ubuntu-latest
+    needs: test
     steps:
     - uses: actions/checkout@v4
       with:
@@ -18,8 +92,16 @@ jobs:
       with:
         go-version: '1.21'
 
-    - name: Run tests
-      run: go test -v ./...
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
 
     - name: Build binaries
       run: |
