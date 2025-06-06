@@ -23,25 +23,24 @@ jobs:
 
     - name: Build binaries
       run: |
+        # Extract version from tag (remove 'v' prefix)
+        VERSION=${GITHUB_REF#refs/tags/v}
+        
         # Build for macOS (Intel)
-        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o esh-cli-darwin-amd64 .
+        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w -X main.version=$VERSION" -o esh-cli-darwin-amd64 .
         
         # Build for macOS (Apple Silicon)
-        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o esh-cli-darwin-arm64 .
+        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w -X main.version=$VERSION" -o esh-cli-darwin-arm64 .
         
         # Build for Linux (x86_64)
-        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o esh-cli-linux-amd64 .
+        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=$VERSION" -o esh-cli-linux-amd64 .
         
         # Build for Linux (ARM64)
-        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o esh-cli-linux-arm64 .
-        
-        # Create universal macOS binary
-        lipo -create -output esh-cli-darwin-universal esh-cli-darwin-amd64 esh-cli-darwin-arm64 || cp esh-cli-darwin-amd64 esh-cli-darwin-universal
+        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X main.version=$VERSION" -o esh-cli-linux-arm64 .
 
     - name: Create archives
       run: |
         # Create tar.gz archives
-        tar -czf esh-cli-darwin-universal.tar.gz esh-cli-darwin-universal
         tar -czf esh-cli-darwin-amd64.tar.gz esh-cli-darwin-amd64
         tar -czf esh-cli-darwin-arm64.tar.gz esh-cli-darwin-arm64
         tar -czf esh-cli-linux-amd64.tar.gz esh-cli-linux-amd64
