@@ -1,0 +1,96 @@
+{"Time":"2025-06-06T09:13:46.093054+03:00","Action":"start","Package":"esh-cli"}
+{"Time":"2025-06-06T09:13:46.093451+03:00","Action":"start","Package":"esh-cli/cmd"}
+{"Time":"2025-06-06T09:13:46.093873+03:00","Action":"start","Package":"esh-cli/pkg/utils"}
+{"Time":"2025-06-06T09:13:47.124467+03:00","Action":"run","Package":"esh-cli/pkg/utils","Test":"TestIsVersionValid"}
+{"Time":"2025-06-06T09:13:47.124598+03:00","Action":"output","Package":"esh-cli/pkg/utils","Test":"TestIsVersionValid","Output":"=== RUN   TestIsVersionValid\n"}
+{"Time":"2025-06-06T09:13:47.127406+03:00","Action":"output","Package":"esh-cli/pkg/utils","Test":"TestIsVersionValid","Output":"--- PASS: TestIsVersionValid (0.00s)\n"}
+{"Time":"2025-06-06T09:13:47.128703+03:00","Action":"pass","Package":"esh-cli/pkg/utils","Test":"TestIsVersionValid","Elapsed":0}
+{"Time":"2025-06-06T09:13:47.128735+03:00","Action":"run","Package":"esh-cli/pkg/utils","Test":"TestIsTagValid"}
+{"Time":"2025-06-06T09:13:47.128765+03:00","Action":"output","Package":"esh-cli/pkg/utils","Test":"TestIsTagValid","Output":"=== RUN   TestIsTagValid\n"}
+{"Time":"2025-06-06T09:13:47.129256+03:00","Action":"output","Package":"esh-cli/pkg/utils","Test":"TestIsTagValid","Output":"--- PASS: TestIsTagValid (0.00s)\n"}
+{"Time":"2025-06-06T09:13:47.129271+03:00","Action":"pass","Package":"esh-cli/pkg/utils","Test":"TestIsTagValid","Elapsed":0}
+{"Time":"2025-06-06T09:13:47.129279+03:00","Action":"run","Package":"esh-cli/pkg/utils","Test":"TestIncrementTag"}
+{"Time":"2025-06-06T09:13:47.129288+03:00","Action":"output","Package":"esh-cli/pkg/utils","Test":"TestIncrementTag","Output":"=== RUN   TestIncrementTag\n"}
+{"Time":"2025-06-06T09:13:47.129399+03:00","Action":"output","Package":"esh-cli/pkg/utils","Test":"TestIncrementTag","Output":"--- PASS: TestIncrementTag (0.00s)\n"}
+{"Time":"2025-06-06T09:13:47.12941+03:00","Action":"pass","Package":"esh-cli/pkg/utils","Test":"TestIncrementTag","Elapsed":0}
+{"Time":"2025-06-06T09:13:47.129418+03:00","Action":"run","Package":"esh-cli/pkg/utils","Test":"TestGetEnvFromTag"}
+{"Time":"2025-06-06T09:13:47.129425+03:00","Action":"output","Package":"esh-cli/pkg/utils","Test":"TestGetEnvFromTag","Output":"=== RUN   TestGetEnvFromTag\n"}
+{"Time":"2025-06-06T09:13:47.129442+03:00","Action":"output","Package":"esh-cli/pkg/utils","Test":"TestGetEnvFromTag","Output":"--- PASS: TestGetEnvFromTag (0.00s)\n"}
+{"Time":"2025-06-06T09:13:47.129457+03:00","Action":"pass","Package":"esh-cli/pkg/utils","Test":"TestGetEnvFromTag","Elapsed":0}
+{"Time":"2025-06-06T09:13:47.129464+03:00","Action":"run","Package":"esh-cli/pkg/utils","Test":"TestIsReleaseBranch"}
+{"Time":"2025-06-06T09:13:47.129472+03:00","Action":"output","Package":"esh-cli/pkg/utils","Test":"TestIsReleaseBranch","Output":"=== RUN   TestIsReleaseBranch\n"}
+{"Time":"2025-06-06T09:13:47.129623+03:00","Action":"output","Package":"esh-cli/pkg/utils","Test":"TestIsReleaseBranch","Output":"--- PASS: TestIsReleaseBranch (0.00s)\n"}
+{"Time":"2025-06-06T09:13:47.129634+03:00","Action":"pass","Package":"esh-cli/pkg/utils","Test":"TestIsReleaseBranch","Elapsed":0}
+{"Time":"2025-06-06T09:13:47.129641+03:00","Action":"run","Package":"esh-cli/pkg/utils","Test":"TestTagPrefix"}
+{"Time":"2025-06-06T09:13:47.129651+03:00","Action":"output","Package":"esh-cli/pkg/utils","Test":"TestTagPrefix","Output":"=== RUN   TestTagPrefix\n"}
+{"Time":"2025-06-06T09:13:47.12966+03:00","Action":"output","Package":"esh-cli/pkg/utils","Test":"TestTagPrefix","Output":"--- PASS: TestTagPrefix (0.00s)\n"}
+{"Time":"2025-06-06T09:13:47.130974+03:00","Action":"pass","Package":"esh-cli/pkg/utils","Test":"TestTagPrefix","Elapsed":0}
+{"Time":"2025-06-06T09:13:47.130988+03:00","Action":"output","Package":"esh-cli/pkg/utils","Output":"PASS\n"}
+{"Time":"2025-06-06T09:13:47.152826+03:00","Action":"output","Package":"esh-cli/pkg/utils","Output":"coverage: 64.9% of statements\n"}
+{"Time":"2025-06-06T09:13:47.487358+03:00","Action":"run","Package":"esh-cli/cmd","Test":"TestAddTagCmdCreation"}
+{"Time":"2025-06-06T09:13:47.487436+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdCreation","Output":"=== RUN   TestAddTagCmdCreation\n"}
+{"Time":"2025-06-06T09:13:47.490731+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdCreation","Output":"--- PASS: TestAddTagCmdCreation (0.00s)\n"}
+{"Time":"2025-06-06T09:13:47.491968+03:00","Action":"pass","Package":"esh-cli/cmd","Test":"TestAddTagCmdCreation","Elapsed":0}
+{"Time":"2025-06-06T09:13:47.491981+03:00","Action":"run","Package":"esh-cli/cmd","Test":"TestAddTagFlags"}
+{"Time":"2025-06-06T09:13:47.491989+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagFlags","Output":"=== RUN   TestAddTagFlags\n"}
+{"Time":"2025-06-06T09:13:47.492438+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagFlags","Output":"--- PASS: TestAddTagFlags (0.00s)\n"}
+{"Time":"2025-06-06T09:13:47.492457+03:00","Action":"pass","Package":"esh-cli/cmd","Test":"TestAddTagFlags","Elapsed":0}
+{"Time":"2025-06-06T09:13:47.492467+03:00","Action":"run","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp"}
+{"Time":"2025-06-06T09:13:47.492475+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"=== RUN   TestAddTagCmdHelp\n"}
+{"Time":"2025-06-06T09:13:47.497072+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"ESH CLI tool for adding and pushing hot fix tags.\n"}
+{"Time":"2025-06-06T09:13:47.497089+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"Tag format is env_major.minor.patch-release\n"}
+{"Time":"2025-06-06T09:13:47.497096+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"In some projects this triggers deployment in CircleCI.\n"}
+{"Time":"2025-06-06T09:13:47.497113+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"\n"}
+{"Time":"2025-06-06T09:13:47.497206+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"Usage:\n"}
+{"Time":"2025-06-06T09:13:47.497217+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"  esh-cli [command]\n"}
+{"Time":"2025-06-06T09:13:47.497224+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"\n"}
+{"Time":"2025-06-06T09:13:47.497232+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"Available Commands:\n"}
+{"Time":"2025-06-06T09:13:47.497238+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"  add-tag     Adds and pushes new hot fix tag\n"}
+{"Time":"2025-06-06T09:13:47.497244+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"  completion  Generate the autocompletion script for the specified shell\n"}
+{"Time":"2025-06-06T09:13:47.497257+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"  help        Help about any command\n"}
+{"Time":"2025-06-06T09:13:47.497262+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"\n"}
+{"Time":"2025-06-06T09:13:47.497268+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"Flags:\n"}
+{"Time":"2025-06-06T09:13:47.497275+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"      --config string   config file (default is $HOME/.esh-cli.yaml)\n"}
+{"Time":"2025-06-06T09:13:47.497281+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"  -h, --help            help for esh-cli\n"}
+{"Time":"2025-06-06T09:13:47.497287+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"\n"}
+{"Time":"2025-06-06T09:13:47.497292+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"Use \"esh-cli [command] --help\" for more information about a command.\n"}
+{"Time":"2025-06-06T09:13:47.497321+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Output":"--- PASS: TestAddTagCmdHelp (0.00s)\n"}
+{"Time":"2025-06-06T09:13:47.497329+03:00","Action":"pass","Package":"esh-cli/cmd","Test":"TestAddTagCmdHelp","Elapsed":0}
+{"Time":"2025-06-06T09:13:47.497344+03:00","Action":"run","Package":"esh-cli/cmd","Test":"TestAddTagValidation"}
+{"Time":"2025-06-06T09:13:47.497351+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagValidation","Output":"=== RUN   TestAddTagValidation\n"}
+{"Time":"2025-06-06T09:13:47.497406+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagValidation","Output":"--- PASS: TestAddTagValidation (0.00s)\n"}
+{"Time":"2025-06-06T09:13:47.497422+03:00","Action":"pass","Package":"esh-cli/cmd","Test":"TestAddTagValidation","Elapsed":0}
+{"Time":"2025-06-06T09:13:47.49743+03:00","Action":"run","Package":"esh-cli/cmd","Test":"TestAddTagEnvHandling"}
+{"Time":"2025-06-06T09:13:47.497437+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagEnvHandling","Output":"=== RUN   TestAddTagEnvHandling\n"}
+{"Time":"2025-06-06T09:13:47.497474+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestAddTagEnvHandling","Output":"--- PASS: TestAddTagEnvHandling (0.00s)\n"}
+{"Time":"2025-06-06T09:13:47.497488+03:00","Action":"pass","Package":"esh-cli/cmd","Test":"TestAddTagEnvHandling","Elapsed":0}
+{"Time":"2025-06-06T09:13:47.497495+03:00","Action":"run","Package":"esh-cli/cmd","Test":"TestSetVersion"}
+{"Time":"2025-06-06T09:13:47.4975+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestSetVersion","Output":"=== RUN   TestSetVersion\n"}
+{"Time":"2025-06-06T09:13:47.497546+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestSetVersion","Output":"--- PASS: TestSetVersion (0.00s)\n"}
+{"Time":"2025-06-06T09:13:47.497574+03:00","Action":"pass","Package":"esh-cli/cmd","Test":"TestSetVersion","Elapsed":0}
+{"Time":"2025-06-06T09:13:47.497584+03:00","Action":"run","Package":"esh-cli/cmd","Test":"TestRootCmdCreation"}
+{"Time":"2025-06-06T09:13:47.497591+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestRootCmdCreation","Output":"=== RUN   TestRootCmdCreation\n"}
+{"Time":"2025-06-06T09:13:47.497605+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestRootCmdCreation","Output":"--- PASS: TestRootCmdCreation (0.00s)\n"}
+{"Time":"2025-06-06T09:13:47.497614+03:00","Action":"pass","Package":"esh-cli/cmd","Test":"TestRootCmdCreation","Elapsed":0}
+{"Time":"2025-06-06T09:13:47.497621+03:00","Action":"run","Package":"esh-cli/cmd","Test":"TestRootCmdVersion"}
+{"Time":"2025-06-06T09:13:47.497627+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestRootCmdVersion","Output":"=== RUN   TestRootCmdVersion\n"}
+{"Time":"2025-06-06T09:13:47.497654+03:00","Action":"output","Package":"esh-cli/cmd","Test":"TestRootCmdVersion","Output":"--- PASS: TestRootCmdVersion (0.00s)\n"}
+{"Time":"2025-06-06T09:13:47.498799+03:00","Action":"pass","Package":"esh-cli/cmd","Test":"TestRootCmdVersion","Elapsed":0}
+{"Time":"2025-06-06T09:13:47.498818+03:00","Action":"output","Package":"esh-cli/cmd","Output":"PASS\n"}
+{"Time":"2025-06-06T09:13:47.520293+03:00","Action":"output","Package":"esh-cli/cmd","Output":"coverage: 7.7% of statements\n"}
+{"Time":"2025-06-06T09:13:48.16865+03:00","Action":"output","Package":"esh-cli/pkg/utils","Output":"ok  \tesh-cli/pkg/utils\t2.072s\tcoverage: 64.9% of statements\n"}
+{"Time":"2025-06-06T09:13:48.168741+03:00","Action":"pass","Package":"esh-cli/pkg/utils","Elapsed":2.075}
+{"Time":"2025-06-06T09:13:48.536215+03:00","Action":"output","Package":"esh-cli/cmd","Output":"ok  \tesh-cli/cmd\t2.439s\tcoverage: 7.7% of statements\n"}
+{"Time":"2025-06-06T09:13:48.536325+03:00","Action":"pass","Package":"esh-cli/cmd","Elapsed":2.443}
+{"Time":"2025-06-06T09:13:50.171987+03:00","Action":"run","Package":"esh-cli","Test":"TestMainVersionVariable"}
+{"Time":"2025-06-06T09:13:50.172056+03:00","Action":"output","Package":"esh-cli","Test":"TestMainVersionVariable","Output":"=== RUN   TestMainVersionVariable\n"}
+{"Time":"2025-06-06T09:13:50.175291+03:00","Action":"output","Package":"esh-cli","Test":"TestMainVersionVariable","Output":"--- PASS: TestMainVersionVariable (0.00s)\n"}
+{"Time":"2025-06-06T09:13:50.176545+03:00","Action":"pass","Package":"esh-cli","Test":"TestMainVersionVariable","Elapsed":0}
+{"Time":"2025-06-06T09:13:50.176577+03:00","Action":"run","Package":"esh-cli","Test":"TestMainPackageStructure"}
+{"Time":"2025-06-06T09:13:50.176588+03:00","Action":"output","Package":"esh-cli","Test":"TestMainPackageStructure","Output":"=== RUN   TestMainPackageStructure\n"}
+{"Time":"2025-06-06T09:13:50.177025+03:00","Action":"output","Package":"esh-cli","Test":"TestMainPackageStructure","Output":"--- PASS: TestMainPackageStructure (0.00s)\n"}
+{"Time":"2025-06-06T09:13:50.178209+03:00","Action":"pass","Package":"esh-cli","Test":"TestMainPackageStructure","Elapsed":0}
+{"Time":"2025-06-06T09:13:50.178222+03:00","Action":"output","Package":"esh-cli","Output":"PASS\n"}
+{"Time":"2025-06-06T09:13:50.195687+03:00","Action":"output","Package":"esh-cli","Output":"coverage: 0.0% of statements\n"}
+{"Time":"2025-06-06T09:13:51.21166+03:00","Action":"output","Package":"esh-cli","Output":"ok  \tesh-cli\t5.114s\tcoverage: 0.0% of statements\n"}
+{"Time":"2025-06-06T09:13:51.211752+03:00","Action":"pass","Package":"esh-cli","Elapsed":5.119}

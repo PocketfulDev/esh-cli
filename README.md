@@ -1,14 +1,20 @@
 # ESH CLI
 
+[![Build Status](https://github.com/PocketfulDev/esh-cli/workflows/CI/badge.svg)](https://github.com/PocketfulDev/esh-cli/actions)
+[![Test Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/your-username/your-gist-id/raw/esh-cli-coverage.json)](https://github.com/PocketfulDev/esh-cli/actions)
+[![Go Report Card](https://goreportcard.com/badge/github.com/PocketfulDev/esh-cli)](https://goreportcard.com/report/github.com/PocketfulDev/esh-cli)
+
 A Go CLI tool for managing git tags and deployments. This is a complete refactor of the original Python script using Cobra and Viper.
 
 ## Features
 
 - Add and push hot fix tags
-- Promote tags between environments
+- Promote tags between environments  
 - Support for service-specific tags
 - Git repository validation
 - Interactive prompts for safety
+- **Comprehensive test coverage** with automated reporting
+- **Cross-platform builds** (macOS, Linux, ARM64 support)
 
 ## Installation
 
@@ -16,7 +22,7 @@ A Go CLI tool for managing git tags and deployments. This is a complete refactor
 
 ```bash
 # Add the tap (one-time setup)
-brew tap eshos/tools
+brew tap PocketfulDev/tools
 
 # Install esh-cli
 brew install esh-cli
@@ -114,23 +120,61 @@ Examples:
 make build
 ```
 
+## Development
+
 ### Testing
 
 ```bash
+# Run all tests
 make test
+
+# Run tests with coverage
+make test-coverage
+
+# Run tests with race detection
+make test-race
+
+# View coverage in browser
+make test-coverage && go tool cover -html=coverage.out
 ```
 
-### Code formatting and vetting
+### Code Quality
 
 ```bash
+# Run formatting and linting checks
 make check
+
+# Fix formatting issues
+go fmt ./...
 ```
 
-### Cleaning
+### Building
 
 ```bash
+# Build for current platform
+make build
+
+# Build for all platforms
+make build-all
+
+# Clean build artifacts
 make clean
 ```
+
+## 🧪 Test Integration
+
+This project features comprehensive test integration with GitHub:
+
+- **Automated Coverage Reports**: Posted to pull requests
+- **Test Result Visualization**: In GitHub Actions UI
+- **Quality Gates**: Tests must pass before releases
+- **Cross-Platform Testing**: Linux, macOS (Intel & ARM)
+
+See [GITHUB_TEST_INTEGRATION.md](GITHUB_TEST_INTEGRATION.md) for detailed information about test reporting and coverage.
+
+### Coverage Thresholds
+- **Overall**: 30% (CLI tools have integration-heavy paths)
+- **Utils Package**: 60% (core business logic)
 
 ## Releasing
 

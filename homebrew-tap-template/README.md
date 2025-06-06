@@ -22,7 +22,7 @@ This directory contains templates for setting up an organization-wide Homebrew t
    
    ```bash
    # Add the tap
-   brew tap eshos/tools
+   brew tap PocketfulDev/tools
    
    # Install tools
    brew install esh-cli
@@ -46,7 +46,7 @@ Once the tap is set up, team members can install tools with:
 
 ```bash
 # One-time tap setup
-brew tap eshos/tools
+brew tap PocketfulDev/tools
 
 # Install any tool
 brew install esh-cli

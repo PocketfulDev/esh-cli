@@ -1,0 +1,90 @@
+name: Update Badges
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    # Update badges daily at 00:00 UTC
+    - cron: '0 0 * * *'
+
+jobs:
+  update-badges:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Run tests and generate coverage
+      run: |
+        go test -v -coverprofile=coverage.out -covermode=atomic ./...
+        go tool cover -func=coverage.out > coverage-func.txt
+
+    - name: Extract coverage percentage
+      id: coverage
+      run: |
+        COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
+        
+        # Determine color based on coverage
+        if (( $(echo "$COVERAGE >= 80" | bc -l) )); then
+          echo "color=brightgreen" >> $GITHUB_OUTPUT
+        elif (( $(echo "$COVERAGE >= 60" | bc -l) )); then
+          echo "color=yellow" >> $GITHUB_OUTPUT
+        elif (( $(echo "$COVERAGE >= 30" | bc -l) )); then
+          echo "color=orange" >> $GITHUB_OUTPUT
+        else
+          echo "color=red" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create coverage badge
+      uses: schneegans/dynamic-badges-action@v1.7.0
+      with:
+        auth: ${{ secrets.GITHUB_TOKEN }}
+        gistID: ${{ secrets.GIST_ID }}
+        filename: esh-cli-coverage.json
+        label: coverage
+        message: ${{ steps.coverage.outputs.coverage }}%
+        color: ${{ steps.coverage.outputs.color }}
+
+    - name: Get test count
+      id: tests
+      run: |
+        TEST_COUNT=$(go test -v ./... 2>&1 | grep -c "=== RUN" || echo "0")
+        echo "count=${TEST_COUNT}" >> $GITHUB_OUTPUT
+
+    - name: Create test count badge
+      uses: schneegans/dynamic-badges-action@v1.7.0
+      with:
+        auth: ${{ secrets.GITHUB_TOKEN }}
+        gistID: ${{ secrets.GIST_ID }}
+        filename: esh-cli-tests.json
+        label: tests
+        message: ${{ steps.tests.outputs.count }} tests
+        color: blue
+
+    - name: Check build status
+      id: build
+      run: |
+        if go build -o esh-cli-test .; then
+          echo "status=passing" >> $GITHUB_OUTPUT
+          echo "color=brightgreen" >> $GITHUB_OUTPUT
+        else
+          echo "status=failing" >> $GITHUB_OUTPUT
+          echo "color=red" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create build status badge
+      uses: schneegans/dynamic-badges-action@v1.7.0
+      with:
+        auth: ${{ secrets.GITHUB_TOKEN }}
+        gistID: ${{ secrets.GIST_ID }}
+        filename: esh-cli-build.json
+        label: build
+        message: ${{ steps.build.outputs.status }}
+        color: ${{ steps.build.outputs.color }}

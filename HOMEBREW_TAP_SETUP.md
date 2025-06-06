@@ -1,30 +1,30 @@
-# Setting Up eshos/homebrew-tools Tap
+# Setting Up PocketfulDev/homebrew-tools Tap
 
-This guide will walk you through setting up the `eshos/homebrew-tools` Homebrew tap for distributing the ESH CLI tool.
+This guide will walk you through setting up the `PocketfulDev/homebrew-tools` Homebrew tap for distributing the ESH CLI tool.
 
 ## Overview
 
 **Repository Structure:**
 - **Source Code**: `PocketfulDev/esh-cli` (stays as is)
-- **Homebrew Tap**: `eshos/homebrew-tools` (new repository to create)
-- **User Installation**: `brew tap eshos/tools && brew install esh-cli`
+- **Homebrew Tap**: `PocketfulDev/homebrew-tools` (new repository to create)
+- **User Installation**: `brew tap PocketfulDev/tools && brew install esh-cli`
 
 ## Step 1: Create the Homebrew Tap Repository
 
 1. **Go to GitHub** and create a new repository:
-   - **Organization**: `eshos`
+   - **Organization**: `PocketfulDev`
    - **Repository name**: `homebrew-tools`
    - **Description**: "Homebrew formulae for ESH CLI tools"
    - **Visibility**: Public (Homebrew taps must be public)
    - **Initialize**: Yes, with README
 
-2. **Repository URL**: `https://github.com/eshos/homebrew-tools`
+2. **Repository URL**: `https://github.com/PocketfulDev/homebrew-tools`
 
 ## Step 2: Clone and Set Up the Tap Repository
 
 ```bash
 # Clone the new tap repository
-git clone https://github.com/eshos/homebrew-tools.git
+git clone https://github.com/PocketfulDev/homebrew-tools.git
 cd homebrew-tools
 
 # Create the Formula directory (required for Homebrew taps)
@@ -35,15 +35,15 @@ cp /Users/jonathanpick/esh-cli-git/homebrew-formula/esh-cli.rb Formula/esh-cli.r
 
 # Create a basic README for the tap
 cat << 'EOF' > README.md
-# ESH OS Homebrew Tap
+# PocketfulDev Homebrew Tap
 
-Custom Homebrew formulas for ESH OS tools.
+Custom Homebrew formulas for PocketfulDev tools.
 
 ## Installation
 
 ```bash
 # Add the tap
-brew tap eshos/tools
+brew tap PocketfulDev/tools
 
 # Install tools
 brew install esh-cli
@@ -129,7 +129,7 @@ git push origin main
 
 ```bash
 # Test the complete workflow
-brew tap eshos/tools
+brew tap PocketfulDev/tools
 brew install esh-cli
 
 # Verify it works
@@ -179,7 +179,7 @@ Once set up, team members can install the tool with:
 
 ```bash
 # One-time setup
-brew tap eshos/tools
+brew tap PocketfulDev/tools
 
 # Install
 brew install esh-cli
@@ -189,7 +189,7 @@ brew upgrade esh-cli
 
 # Uninstall (if needed)
 brew uninstall esh-cli
-brew untap eshos/tools
+brew untap PocketfulDev/tools
 ```
 
 ## Troubleshooting
@@ -197,7 +197,7 @@ brew untap eshos/tools
 ### Formula Not Found
 ```bash
 # Ensure tap is added correctly
-brew tap eshos/tools
+brew tap PocketfulDev/tools
 
 # Update Homebrew
 brew update
@@ -215,13 +215,13 @@ brew install esh-cli
 
 ### Permission Issues
 ```bash
-# Ensure you have write access to the eshos/homebrew-tools repository
+# Ensure you have write access to the PocketfulDev/homebrew-tools repository
 # Check your GitHub permissions
 ```
 
 ## Next Steps
 
-1. **Create the eshos/homebrew-tools repository** on GitHub
+1. **Create the PocketfulDev/homebrew-tools repository** on GitHub
 2. **Follow the setup steps above** to initialize it
 3. **Create your first ESH CLI release** (v1.0.0)
 4. **Update the formula** with real checksums

@@ -45,48 +45,98 @@ jobs:
     - name: Run tests with race detection
       run: go test -v -race ./...
 
-    - name: Run tests with coverage
+    - name: Run tests with coverage and JSON output
       run: |
-        go test -v -coverprofile=coverage.out -covermode=atomic ./...
+        # Run tests with JSON output for better reporting
+        go test -v -race -coverprofile=coverage.out -covermode=atomic -json ./... > test-results.json
         go tool cover -html=coverage.out -o coverage.html
+        
+        # Generate coverage report for different formats
+        go tool cover -func=coverage.out > coverage-func.txt
 
-    - name: Upload coverage reports
-      uses: actions/upload-artifact@v3
+    - name: Parse test results
+      uses: dorny/test-reporter@v1
+      if: success() || failure()
       with:
-        name: coverage-report
+        name: Go Tests
+        path: test-results.json
+        reporter: golang-json
+        fail-on-error: true
+
+    - name: Upload test results and coverage
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-and-coverage-results
         path: |
+          test-results.json
           coverage.out
           coverage.html
+          coverage-func.txt
 
-    - name: Check test coverage
+    - name: Check test coverage and generate summary
+      id: coverage
       run: |
         COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
         echo "Total test coverage: ${COVERAGE}%"
-        
-        # For CLI tools, we set a lower threshold since main execution paths require integration testing
-        if (( $(echo "$COVERAGE < 30" | bc -l) )); then
-          echo "⚠️ Warning: Test coverage is below 30% threshold"
-          echo "Current coverage: ${COVERAGE}%"
-          echo "Note: CLI tools often have lower unit test coverage due to integration-heavy main logic"
-        else
-          echo "✅ Test coverage meets threshold: ${COVERAGE}%"
-        fi
         
         # Check utils package specifically (where business logic resides)
         UTILS_COVERAGE=$(go test -coverprofile=utils_coverage.out -covermode=atomic ./pkg/utils && go tool cover -func=utils_coverage.out | grep total | awk '{print $3}' | sed 's/%//')
         echo "Utils package coverage: ${UTILS_COVERAGE}%"
         
-        if (( $(echo "$UTILS_COVERAGE < 60" | bc -l) )); then
-          echo "⚠️ Warning: Utils package coverage is below 60%"
+        # Set outputs for PR comment
+        echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
+        echo "utils_coverage=${UTILS_COVERAGE}" >> $GITHUB_OUTPUT
+        
+        # Store coverage details for PR comment
+        {
+          echo "coverage_details<<"
+          cat coverage-func.txt
+          echo ""
+        } >> $GITHUB_OUTPUT
+        
+        # Generate GitHub Actions summary
+        echo "## 📊 Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Metric | Value | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Overall Coverage | ${COVERAGE}% | $([ $(echo "$COVERAGE >= 30" | bc -l) -eq 1 ] && echo "✅ Pass" || echo "⚠️ Below Target") |" >> $GITHUB_STEP_SUMMARY
+        echo "| Utils Package | ${UTILS_COVERAGE}% | $([ $(echo "$UTILS_COVERAGE >= 60" | bc -l) -eq 1 ] && echo "✅ Pass" || echo "⚠️ Below Target") |" >> $GITHUB_STEP_SUMMARY
+        
+        # For CLI tools, we set a lower threshold since main execution paths require integration testing
+        if (( $(echo "$COVERAGE < 30" | bc -l) )); then
+          echo "⚠️ Warning: Test coverage is below 30% threshold" | tee -a $GITHUB_STEP_SUMMARY
+          echo "Current coverage: ${COVERAGE}%" | tee -a $GITHUB_STEP_SUMMARY
+          echo "Note: CLI tools often have lower unit test coverage due to integration-heavy main logic" | tee -a $GITHUB_STEP_SUMMARY
         else
-          echo "✅ Utils package coverage is good: ${UTILS_COVERAGE}%"
+          echo "✅ Test coverage meets threshold: ${COVERAGE}%" | tee -a $GITHUB_STEP_SUMMARY
         fi
+        
+        if (( $(echo "$UTILS_COVERAGE < 60" | bc -l) )); then
+          echo "⚠️ Warning: Utils package coverage is below 60%" | tee -a $GITHUB_STEP_SUMMARY
+        else
+          echo "✅ Utils package coverage is good: ${UTILS_COVERAGE}%" | tee -a $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Add detailed coverage breakdown
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📋 Coverage Details" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        cat coverage-func.txt >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
-    - name: Build test
+    - name: Build test and add to summary
       run: |
         go build -o esh-cli-test .
         ./esh-cli-test --version
         ./esh-cli-test --help
+        
+        # Add build info to summary
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## 🔨 Build Information" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Binary compiled successfully" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Version command works" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Help command works" >> $GITHUB_STEP_SUMMARY
 
   cross-platform-build:
     runs-on: ubuntu-latest
@@ -99,12 +149,52 @@ jobs:
       with:
         go-version: '1.21'
 
-    - name: Test cross-platform builds
+    - name: Test cross-platform builds with summary
       run: |
         # Test building for different platforms
-        GOOS=darwin GOARCH=amd64 go build -o esh-cli-darwin-amd64 .
-        GOOS=darwin GOARCH=arm64 go build -o esh-cli-darwin-arm64 .
-        GOOS=linux GOARCH=amd64 go build -o esh-cli-linux-amd64 .
-        GOOS=linux GOARCH=arm64 go build -o esh-cli-linux-arm64 .
+        echo "## 🌍 Cross-Platform Build Results" >> $GITHUB_STEP_SUMMARY
+        echo "| Platform | Architecture | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|----------|--------------|---------|" >> $GITHUB_STEP_SUMMARY
         
+        platforms=("darwin/amd64" "darwin/arm64" "linux/amd64" "linux/arm64")
+        
+        for platform in "${platforms[@]}"; do
+          IFS='/' read -r os arch <<< "$platform"
+          binary_name="esh-cli-${os}-${arch}"
+          
+          if GOOS=$os GOARCH=$arch go build -o $binary_name .; then
+            echo "| $os | $arch | ✅ Success |" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Built $binary_name"
+          else
+            echo "| $os | $arch | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Failed to build $binary_name"
+            exit 1
+          fi
+        done
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
         echo "✅ All cross-platform builds successful"
+
+    # Add coverage comment to PR (only for pull requests)
+    - name: Comment coverage on PR
+      if: github.event_name == 'pull_request'
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        header: coverage
+        message: |
+          ## 📊 Test Coverage Report
+          
+          | Metric | Value | Status |
+          |--------|--------|--------|
+          | Overall Coverage | ${{ steps.coverage.outputs.coverage }}% | ${{ steps.coverage.outputs.coverage >= 30 && '✅ Pass' || '⚠️ Below Target (30%)' }} |
+          | Utils Package | ${{ steps.coverage.outputs.utils_coverage }}% | ${{ steps.coverage.outputs.utils_coverage >= 60 && '✅ Pass' || '⚠️ Below Target (60%)' }} |
+          
+          <details>
+          <summary>📋 Detailed Coverage</summary>
+          
+          ```
+          ${{ steps.coverage.outputs.coverage_details }}
+          ```
+          </details>
+          
+          > 💡 **Note**: CLI tools often have lower overall coverage due to integration-heavy main logic. The utils package contains the core business logic and should maintain higher coverage.

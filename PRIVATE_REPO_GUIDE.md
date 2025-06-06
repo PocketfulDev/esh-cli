@@ -15,7 +15,7 @@
 3. **Use the standard formula** (`esh-cli.rb`)
 4. **Team installation**:
    ```bash
-   brew tap eshos/tools
+   brew tap PocketfulDev/tools
    brew install esh-cli
    ```
 
@@ -36,7 +36,7 @@
    export HOMEBREW_GITHUB_API_TOKEN="ghp_your_token_here"
    
    # Install
-   brew tap eshos/tools
+   brew tap PocketfulDev/tools
    brew install esh-cli
    ```
 
@@ -80,7 +80,7 @@ cp homebrew-formula/esh-cli-private.rb homebrew-formula/esh-cli.rb
 ### For Private Repo + Public Releases:
 ```bash
 # One-time setup
-brew tap eshos/tools
+brew tap PocketfulDev/tools
 brew install esh-cli
 ```
 
@@ -93,7 +93,7 @@ brew install esh-cli
 export HOMEBREW_GITHUB_API_TOKEN="your_token_here"
 
 # 3. Install
-brew tap eshos/tools
+brew tap PocketfulDev/tools
 brew install esh-cli
 ```
 

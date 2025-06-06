@@ -42,41 +42,70 @@ jobs:
           exit 1
         fi
 
-    - name: Run tests with coverage
+    - name: Run tests with coverage and JSON output
       run: |
-        go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+        # Run tests with JSON output for better reporting
+        go test -v -race -coverprofile=coverage.out -covermode=atomic -json ./... > test-results.json
         go tool cover -html=coverage.out -o coverage.html
+        go tool cover -func=coverage.out > coverage-func.txt
 
-    - name: Upload coverage to GitHub
-      uses: actions/upload-artifact@v3
+    - name: Parse test results
+      uses: dorny/test-reporter@v1
+      if: success() || failure()
       with:
-        name: coverage-report
+        name: Release Tests
+        path: test-results.json
+        reporter: golang-json
+        fail-on-error: true
+
+    - name: Upload test results and coverage
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: release-test-and-coverage-results
         path: |
+          test-results.json
           coverage.out
           coverage.html
+          coverage-func.txt
 
-    - name: Check test coverage threshold
+    - name: Check test coverage threshold with summary
       run: |
         COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
         echo "Total test coverage: ${COVERAGE}%"
         
+        # Generate GitHub Actions summary for release
+        echo "## 🚀 Release Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Metric | Value | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Overall Coverage | ${COVERAGE}% | $([ $(echo "$COVERAGE >= 30" | bc -l) -eq 1 ] && echo "✅ Pass" || echo "❌ Failed") |" >> $GITHUB_STEP_SUMMARY
+        
         if (( $(echo "$COVERAGE < 30" | bc -l) )); then
-          echo "❌ Test coverage is below 30% threshold: ${COVERAGE}%"
-          echo "This is too low for a release. Please add more tests."
+          echo "❌ Test coverage is below 30% threshold: ${COVERAGE}%" | tee -a $GITHUB_STEP_SUMMARY
+          echo "This is too low for a release. Please add more tests." | tee -a $GITHUB_STEP_SUMMARY
           exit 1
         else
-          echo "✅ Test coverage meets threshold: ${COVERAGE}%"
+          echo "✅ Test coverage meets threshold: ${COVERAGE}%" | tee -a $GITHUB_STEP_SUMMARY
         fi
         
         # Also check utils package specifically
         UTILS_COVERAGE=$(go test -coverprofile=utils_coverage.out -covermode=atomic ./pkg/utils && go tool cover -func=utils_coverage.out | grep total | awk '{print $3}' | sed 's/%//')
         echo "Utils package coverage: ${UTILS_COVERAGE}%"
+        echo "| Utils Package | ${UTILS_COVERAGE}% | $([ $(echo "$UTILS_COVERAGE >= 60" | bc -l) -eq 1 ] && echo "✅ Pass" || echo "❌ Failed") |" >> $GITHUB_STEP_SUMMARY
         
         if (( $(echo "$UTILS_COVERAGE < 60" | bc -l) )); then
-          echo "❌ Utils package coverage is below 60%: ${UTILS_COVERAGE}%"
-          echo "Business logic should have better test coverage."
+          echo "❌ Utils package coverage is below 60%: ${UTILS_COVERAGE}%" | tee -a $GITHUB_STEP_SUMMARY
+          echo "Business logic should have better test coverage." | tee -a $GITHUB_STEP_SUMMARY
           exit 1
         fi
+        
+        # Add detailed coverage breakdown
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📋 Coverage Details" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        cat coverage-func.txt >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
   # Build and release only after tests pass
   release:
