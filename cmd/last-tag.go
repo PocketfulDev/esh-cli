@@ -4,8 +4,10 @@ import (
 	"esh-cli/pkg/utils"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -40,16 +42,116 @@ func runLastTag(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// Get last tag for environment
-	lastTag, lastComment, err := utils.FindLastTagAndComment(environment, "?", lastTagService)
+	// Make sure config is loaded
+	initConfig()
+
+	// If no service specified, suggest available projects
+	if lastTagService == "" {
+		suggestProjects()
+		return
+	}
+
+	// Find the project path for the specified service
+	projectPath := findProjectPath(lastTagService)
+	if projectPath == "" {
+		fmt.Fprintf(os.Stderr, "Error: service '%s' not found in configuration.\n", lastTagService)
+		fmt.Fprintf(os.Stderr, "Available services:\n")
+		suggestProjects()
+		os.Exit(1)
+	}
+
+	// Get last tag for environment from the specific project directory
+	// Note: We don't include the service name in the tag pattern since tags are in format: env_version-release
+	lastTag, lastComment, err := utils.FindLastTagAndCommentInDir(environment, "?", "", projectPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error finding last tag: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error finding last tag in %s: %v\n", projectPath, err)
 		os.Exit(1)
 	}
 
 	if lastTag != "" {
 		fmt.Printf("%s %s\n", lastTag, lastComment)
 	} else {
-		fmt.Println("No tags found")
+		fmt.Printf("No tags found for service '%s' in environment '%s'\n", lastTagService, environment)
 	}
+}
+
+// findProjectPath finds the path for a given service name from the config
+func findProjectPath(serviceName string) string {
+	projects := viper.Get("projects")
+	if projects == nil {
+		return ""
+	}
+
+	projectsList, ok := projects.([]interface{})
+	if !ok {
+		return ""
+	}
+
+	for _, proj := range projectsList {
+		projMap, ok := proj.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		name := getProjectStringValue(projMap, "name")
+		path := getProjectStringValue(projMap, "path")
+
+		// Match service name with project name
+		if strings.EqualFold(name, serviceName) {
+			return path
+		}
+	}
+
+	return ""
+}
+
+// suggestProjects shows available projects to the user
+func suggestProjects() {
+	projects := viper.Get("projects")
+	if projects == nil {
+		fmt.Println("❌ No projects found in configuration.")
+		fmt.Println("Run 'esh-cli init' to discover projects automatically.")
+		return
+	}
+
+	projectsList, ok := projects.([]interface{})
+	if !ok {
+		fmt.Fprintf(os.Stderr, "Error: Invalid projects data in configuration\n")
+		return
+	}
+
+	if len(projectsList) == 0 {
+		fmt.Println("❌ No projects found in configuration.")
+		fmt.Println("Run 'esh-cli init' to discover projects automatically.")
+		return
+	}
+
+	fmt.Println("📁 Available services/projects:")
+	fmt.Println("Please specify a service using --service or -s flag:")
+	fmt.Println()
+
+	for _, proj := range projectsList {
+		projMap, ok := proj.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		name := getProjectStringValue(projMap, "name")
+		projectType := getProjectStringValue(projMap, "type")
+
+		fmt.Printf("  • %s (%s)\n", name, projectType)
+	}
+
+	fmt.Printf("\nExample: esh-cli last-tag %s --service %s\n",
+		"stg6", getProjectStringValue(projectsList[0].(map[string]interface{}), "name"))
+}
+
+// getProjectStringValue safely extracts string value from map
+func getProjectStringValue(m map[string]interface{}, key string) string {
+	if val, exists := m[key]; exists {
+		if str, ok := val.(string); ok {
+			return str
+		}
+	}
+	return "unknown"
 }

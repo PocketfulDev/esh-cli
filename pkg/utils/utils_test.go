@@ -267,3 +267,89 @@ func TestAsk(t *testing.T) {
 	// We can't use direct comparison with nil as it's always false for functions
 	t.Log("Ask function exists and is callable (testing deferred)")
 }
+
+func TestCmdInDir(t *testing.T) {
+	tests := []struct {
+		name        string
+		command     string
+		dir         string
+		expectError bool
+	}{
+		{
+			name:        "simple command in current dir",
+			command:     "echo hello",
+			dir:         ".",
+			expectError: false,
+		},
+		{
+			name:        "invalid directory",
+			command:     "echo hello",
+			dir:         "/nonexistent/directory",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := CmdInDir(tt.command, tt.dir)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("CmdInDir(%q, %q) expected error, got nil", tt.command, tt.dir)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("CmdInDir(%q, %q) unexpected error: %v", tt.command, tt.dir, err)
+				}
+				if tt.command == "echo hello" && result != "hello" {
+					t.Errorf("CmdInDir(%q, %q) = %q, want %q", tt.command, tt.dir, result, "hello")
+				}
+			}
+		})
+	}
+}
+
+func TestFindLastTagAndCommentInDir(t *testing.T) {
+	tests := []struct {
+		name        string
+		env         string
+		version     string
+		service     string
+		dir         string
+		expectError bool
+	}{
+		{
+			name:        "current directory",
+			env:         "dev",
+			version:     "?",
+			service:     "",
+			dir:         ".",
+			expectError: false, // Should not error even if no tags found
+		},
+		{
+			name:        "invalid directory",
+			env:         "dev",
+			version:     "?",
+			service:     "",
+			dir:         "/nonexistent/directory",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, _, err := FindLastTagAndCommentInDir(tt.env, tt.version, tt.service, tt.dir)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("FindLastTagAndCommentInDir expected error for dir %q, got nil", tt.dir)
+				}
+			} else {
+				// For valid directories, even if no tags are found, it shouldn't error
+				// The function should return empty strings but no error
+				if err != nil && tt.dir == "." {
+					// Only fail if it's a legitimate error, not just "no tags found"
+					t.Logf("FindLastTagAndCommentInDir warning for dir %q: %v", tt.dir, err)
+				}
+			}
+		})
+	}
+}

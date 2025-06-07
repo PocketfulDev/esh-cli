@@ -34,6 +34,18 @@ func Cmd(command string) (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
+// CmdInDir executes a shell command in a specific directory and returns the trimmed output
+func CmdInDir(command, dir string) (string, error) {
+	fmt.Printf("> %s (in %s)\n", command, dir)
+	cmd := exec.Command("sh", "-c", command)
+	cmd.Dir = dir
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
 // Ask prompts the user for input
 func Ask(prompt string) string {
 	fmt.Printf("\n%s :", prompt)
@@ -178,10 +190,23 @@ func GetEnvFromTag(tag string) (string, error) {
 
 // FindLastTagAndComment finds the last tag and its comment
 func FindLastTagAndComment(env, version, service string) (string, string, error) {
+	return FindLastTagAndCommentInDir(env, version, service, "")
+}
+
+// FindLastTagAndCommentInDir finds the last tag and its comment in a specific directory
+func FindLastTagAndCommentInDir(env, version, service, dir string) (string, string, error) {
 	tagPattern := TagPrefix(env, version, service) + "*"
 	command := fmt.Sprintf("git tag --list -n1 '%s' --sort=creatordate | tail -1", tagPattern)
 
-	tagComment, err := Cmd(command)
+	var tagComment string
+	var err error
+
+	if dir != "" {
+		tagComment, err = CmdInDir(command, dir)
+	} else {
+		tagComment, err = Cmd(command)
+	}
+
 	if err != nil || tagComment == "" {
 		return "", "", err
 	}
