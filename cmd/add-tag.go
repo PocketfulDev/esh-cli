@@ -21,11 +21,12 @@ var addTagCmd = &cobra.Command{
 	Short: "Adds and pushes new hot fix tag",
 	Long: `Adds and pushes new hot fix tag.
 Tag format is env_major.minor.patch-release
-In some projects this triggers deployment in CircleCI.`,
-	Example: `  esh-cli add-tag stg6 ? - shows last tag for staging
-  esh-cli add-tag stg6 1.2.1 - adds tag for staging on latest commit
+In some projects this triggers deployment in CircleCI.
+
+Use 'esh-cli last-tag [environment]' to see the current last tag.`,
+	Example: `  esh-cli add-tag stg6 1.2.1 - adds tag for staging on latest commit
   esh-cli add-tag production2 1.2.1 --from stg6_1.2.1-0 - promotes from staging`,
-	Args: cobra.RangeArgs(1, 2),
+	Args: cobra.ExactArgs(2),
 	Run:  runAddTag,
 }
 
@@ -39,10 +40,7 @@ func init() {
 
 func runAddTag(cmd *cobra.Command, args []string) {
 	environment := args[0]
-	version := "?"
-	if len(args) > 1 {
-		version = args[1]
-	}
+	version := args[1]
 
 	// Validate environment
 	if !utils.ContainsString(utils.ENVS, environment) {
@@ -51,8 +49,8 @@ func runAddTag(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// Validate version if not "?"
-	if version != "?" && !utils.IsVersionValid(version, false) {
+	// Validate version
+	if !utils.IsVersionValid(version, false) {
 		fmt.Fprintf(os.Stderr, "Error: version '%s' is not valid\n", version)
 		os.Exit(1)
 	}
@@ -71,7 +69,7 @@ func runAddTag(cmd *cobra.Command, args []string) {
 	}
 
 	// Validate branch and hot fix rules
-	if version != "?" && utils.IsReleaseBranch(branch) && !hotFix {
+	if version != "last" && utils.IsReleaseBranch(branch) && !hotFix {
 		fmt.Fprintf(os.Stderr, "Error: you can tag only hot fix (use --hot-fix flag) from release branch\n")
 		os.Exit(1)
 	}
@@ -108,19 +106,10 @@ func runAddTag(cmd *cobra.Command, args []string) {
 	}
 
 	// Get last tag for version
-	lastTag, lastComment, err := utils.FindLastTagAndComment(environment, version, service)
-	if err != nil && version != "?" {
+	lastTag, _, err := utils.FindLastTagAndComment(environment, version, service)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error finding last tag: %v\n", err)
-	}
-
-	// If asking for last tag info
-	if version == "?" && promoteFrom == "" && !hotFix {
-		if lastTag != "" {
-			fmt.Printf("%s %s\n", lastTag, lastComment)
-		} else {
-			fmt.Println("No tags found")
-		}
-		os.Exit(0)
+		os.Exit(1)
 	}
 
 	var newTag string

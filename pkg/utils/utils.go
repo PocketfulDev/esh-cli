@@ -93,6 +93,11 @@ func GetToday() string {
 	return time.Now().Format("20060102")
 }
 
+// GetCurrentTime returns current timestamp in RFC3339 format
+func GetCurrentTime() string {
+	return time.Now().Format(time.RFC3339)
+}
+
 // IncrementTag increments a tag version
 func IncrementTag(tag string, hotFix bool) string {
 	if tag == "" {

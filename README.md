@@ -65,7 +65,7 @@ Show help:
 
 Show last tag for staging:
 ```bash
-./esh-cli add-tag stg6 ?
+./esh-cli add-tag stg6 last
 ```
 
 Add tag for staging on latest commit:

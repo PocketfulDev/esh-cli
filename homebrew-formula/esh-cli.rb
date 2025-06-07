@@ -1,7 +1,7 @@
 class EshCli < Formula
   desc "ESH CLI tool for managing git tags and deployments"
   homepage "https://github.com/PocketfulDev/esh-cli"
-  version "1.0.0"
+  version "1.0.4"
 
   if OS.mac? && Hardware::CPU.arm?
     url "https://github.com/PocketfulDev/esh-cli/releases/download/v#{version}/esh-cli-darwin-arm64.tar.gz"

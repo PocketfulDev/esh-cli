@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -58,5 +59,23 @@ func initConfig() {
 
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	} else {
+		// Config file not found - check if we should auto-initialize
+		// Only auto-initialize if this is not the init command itself
+		if shouldAutoInitialize() {
+			fmt.Fprintln(os.Stderr, "🤖 No configuration found. Consider running 'esh-cli init' for AI project discovery.")
+		}
 	}
+}
+
+// shouldAutoInitialize checks if we should show auto-initialization message
+func shouldAutoInitialize() bool {
+	// Don't show message if running init command
+	if len(os.Args) > 1 {
+		command := strings.ToLower(os.Args[1])
+		if command == "init" || command == "help" || command == "--help" || command == "-h" {
+			return false
+		}
+	}
+	return true
 }
