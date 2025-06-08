@@ -67,7 +67,8 @@ jobs:
     - name: Get test count
       id: tests
       run: |
-        TEST_COUNT=$(go test -v ./... 2>&1 | grep -c "=== RUN" || echo "0")
+        # Count test functions directly from source code to avoid redundant test execution
+        TEST_COUNT=$(find . -name "*_test.go" -exec grep -h "func Test" {} \; | wc -l || echo "0")
         echo "count=${TEST_COUNT}" >> $GITHUB_OUTPUT
 
     - name: Create test count badge

@@ -42,17 +42,14 @@ jobs:
           exit 1
         fi
 
-    - name: Run tests with race detection
-      run: go test -v -race ./...
-
     - name: Run tests with coverage and JSON output
       run: |
         # Create build directory for outputs
         mkdir -p build
         
-        # Run tests with JSON output for better reporting
-        echo "🧪 Running tests with coverage and JSON output..."
-        go test -v -race -coverprofile=build/coverage.out -covermode=atomic -json ./... > build/test-results.json
+        # Run tests with race detection, coverage, and JSON output in one step
+        echo "🧪 Running tests with race detection, coverage, and JSON output..."
+        go test -v -race -coverprofile=build/coverage.out -covermode=atomic -json ./... 2>&1 | tee build/test-results.json
         
         # Verify the JSON file was created and has content
         if [ -f "build/test-results.json" ]; then
@@ -161,9 +158,13 @@ jobs:
         COVERAGE=$(go tool cover -func=build/coverage.out | grep total | awk '{print $3}' | sed 's/%//')
         echo "Total test coverage: ${COVERAGE}%"
         
-        # Check utils package specifically (where business logic resides)
-        mkdir -p build
-        UTILS_COVERAGE=$(go test -coverprofile=build/utils_coverage.out -covermode=atomic ./pkg/utils && go tool cover -func=build/utils_coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        # Extract utils package coverage from existing coverage data (avoid redundant test run)
+        UTILS_LINES=$(go tool cover -func=build/coverage.out | grep "pkg/utils" | wc -l)
+        if [ "$UTILS_LINES" -gt 0 ]; then
+          UTILS_COVERAGE=$(go tool cover -func=build/coverage.out | grep "pkg/utils" | awk '{sum+=$3; count++} END {if(count>0) printf "%.1f", sum/count; else print "0"}')
+        else
+          UTILS_COVERAGE="0.0"
+        fi
         echo "Utils package coverage: ${UTILS_COVERAGE}%"
         
         # Set outputs for PR comment
