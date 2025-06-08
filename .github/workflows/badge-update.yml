@@ -48,14 +48,30 @@ jobs:
       run: |
         if [ -n "${{ secrets.GIST_ID }}" ]; then
           echo "badges-enabled=true" >> $GITHUB_OUTPUT
+          echo "✅ GIST_ID secret is configured"
         else
           echo "badges-enabled=false" >> $GITHUB_OUTPUT
           echo "⚠️ GIST_ID secret not configured - badges will be skipped"
+          echo ""
+          echo "To enable badges:"
+          echo "1. Create a GitHub Gist at https://gist.github.com"
+          echo "2. Copy the Gist ID from the URL"
+          echo "3. Add it as a repository secret named 'GIST_ID'"
         fi
+
+    - name: Debug badge setup
+      if: steps.badge-check.outputs.badges-enabled == 'true'
+      run: |
+        echo "🔍 Badge setup verification:"
+        echo "- GIST_ID configured: ✅"
+        echo "- GitHub token available: ✅"
+        echo "- Coverage: ${{ steps.coverage.outputs.coverage }}%"
+        echo "- Color: ${{ steps.coverage.outputs.color }}"
 
     - name: Create coverage badge
       if: steps.badge-check.outputs.badges-enabled == 'true'
       uses: schneegans/dynamic-badges-action@v1.7.0
+      continue-on-error: true
       with:
         auth: ${{ secrets.GITHUB_TOKEN }}
         gistID: ${{ secrets.GIST_ID }}
@@ -63,6 +79,7 @@ jobs:
         label: coverage
         message: ${{ steps.coverage.outputs.coverage }}%
         color: ${{ steps.coverage.outputs.color }}
+        forceUpdate: true
 
     - name: Get test count
       id: tests
@@ -74,6 +91,7 @@ jobs:
     - name: Create test count badge
       if: steps.badge-check.outputs.badges-enabled == 'true'
       uses: schneegans/dynamic-badges-action@v1.7.0
+      continue-on-error: true
       with:
         auth: ${{ secrets.GITHUB_TOKEN }}
         gistID: ${{ secrets.GIST_ID }}
@@ -81,6 +99,7 @@ jobs:
         label: tests
         message: ${{ steps.tests.outputs.count }} tests
         color: blue
+        forceUpdate: true
 
     - name: Check build status
       id: build
@@ -97,6 +116,7 @@ jobs:
     - name: Create build status badge
       if: steps.badge-check.outputs.badges-enabled == 'true'
       uses: schneegans/dynamic-badges-action@v1.7.0
+      continue-on-error: true
       with:
         auth: ${{ secrets.GITHUB_TOKEN }}
         gistID: ${{ secrets.GIST_ID }}
@@ -104,3 +124,41 @@ jobs:
         label: build
         message: ${{ steps.build.outputs.status }}
         color: ${{ steps.build.outputs.color }}
+        forceUpdate: true
+
+    - name: Badge creation summary
+      if: always() && steps.badge-check.outputs.badges-enabled == 'true'
+      run: |
+        echo "## 🎖️ Badge Update Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Badge | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Coverage (${{ steps.coverage.outputs.coverage }}%) | ✅ Attempted |" >> $GITHUB_STEP_SUMMARY
+        echo "| Tests (${{ steps.tests.outputs.count }} tests) | ✅ Attempted |" >> $GITHUB_STEP_SUMMARY
+        echo "| Build (${{ steps.build.outputs.status }}) | ✅ Attempted |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "If badges failed to update, check:" >> $GITHUB_STEP_SUMMARY
+        echo "1. GIST_ID secret is correctly configured" >> $GITHUB_STEP_SUMMARY
+        echo "2. The gist exists and is accessible" >> $GITHUB_STEP_SUMMARY
+        echo "3. GitHub token has gist permissions" >> $GITHUB_STEP_SUMMARY
+        
+    - name: Badge troubleshooting info
+      if: failure() && steps.badge-check.outputs.badges-enabled == 'true'
+      run: |
+        echo "🚨 Badge creation failed. Common solutions:"
+        echo ""
+        echo "1. **GIST_ID Issues:**"
+        echo "   - Verify the gist exists at: https://gist.github.com/${{ secrets.GIST_ID }}"
+        echo "   - Check that the GIST_ID secret contains only the gist ID (not the full URL)"
+        echo ""
+        echo "2. **Permission Issues:**"
+        echo "   - The default GITHUB_TOKEN should have gist permissions"
+        echo "   - If using a PAT, ensure 'gist' scope is enabled"
+        echo ""
+        echo "3. **API Rate Limits:**"
+        echo "   - Check if GitHub API rate limits are being hit"
+        echo "   - Consider adding delays between badge updates"
+        echo ""
+        echo "4. **Gist Content:**"
+        echo "   - The gist should be public or owned by the token user"
+        echo "   - File will be created automatically if it doesn't exist"

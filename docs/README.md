@@ -21,6 +21,7 @@
 - **[ESH OS Tap Setup](setup/ESHOS_TAP_SETUP.md)** - ESH OS specific setup
 - **[Private Repository Guide](setup/PRIVATE_REPO_GUIDE.md)** - Private repo configuration
 - **[Deployment Checklist](setup/DEPLOYMENT_CHECKLIST.md)** - Production deployment guide
+- **[Badge Troubleshooting](setup/BADGE_TROUBLESHOOTING.md)** - 🚨 Fix dynamic badge issues
 
 ### 🎨 Design & Architecture
 - **[Semantic Versioning Design](design/SEMANTIC_VERSIONING_DESIGN.md)** - Architecture and design decisions

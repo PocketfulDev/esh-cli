@@ -1,7 +1,7 @@
 # ESH CLI
 
 [![Build Status](https://github.com/PocketfulDev/esh-cli/workflows/CI/badge.svg)](https://github.com/PocketfulDev/esh-cli/actions)
-[![Test Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/your-username/your-gist-id/raw/esh-cli-coverage.json)](https://github.com/PocketfulDev/esh-cli/actions)
+[![Test Coverage](https://img.shields.io/badge/coverage-32.3%25-orange)](https://github.com/PocketfulDev/esh-cli/actions)
 [![Go Report Card](https://goreportcard.com/badge/github.com/PocketfulDev/esh-cli)](https://goreportcard.com/report/github.com/PocketfulDev/esh-cli)
 
 A Go CLI tool for managing git tags and deployments. This is a complete refactor of the original Python script using Cobra and Viper.
