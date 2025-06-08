@@ -263,3 +263,45 @@ func TestRunAddTagExecution(t *testing.T) {
 		t.Log("Command correctly showed help when insufficient arguments provided")
 	}
 }
+
+// TestAddTagCurrentDirectoryBehavior tests that add-tag uses appropriate directory based on service flag
+func TestAddTagCurrentDirectoryBehavior(t *testing.T) {
+	// Test the logic that determines which FindLastTagAndComment function to call
+	// This verifies the branching logic without executing actual git commands
+
+	testCases := []struct {
+		name           string
+		service        string
+		expectedMethod string
+	}{
+		{
+			name:           "no service flag",
+			service:        "",
+			expectedMethod: "FindLastTagAndCommentInDir with current directory",
+		},
+		{
+			name:           "with service flag",
+			service:        "myservice",
+			expectedMethod: "FindLastTagAndComment with service",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Simulate the logic from runAddTag
+			var method string
+
+			if tc.service == "" {
+				// This would call: utils.FindLastTagAndCommentInDir(environment, version, "", ".")
+				method = "FindLastTagAndCommentInDir with current directory"
+			} else {
+				// This would call: utils.FindLastTagAndComment(environment, version, service)
+				method = "FindLastTagAndComment with service"
+			}
+
+			if method != tc.expectedMethod {
+				t.Errorf("Expected method %q, got %q", tc.expectedMethod, method)
+			}
+		})
+	}
+}

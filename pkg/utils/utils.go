@@ -17,7 +17,7 @@ var ENVS = []string{"dev", "mimic2", "stg6", "demo", "production2"}
 // Regex patterns
 var (
 	VersionHotFixPattern     = regexp.MustCompile(`^(\d+)\.(\d+)-(\d+)\.(\d+)`)
-	VersionPattern           = regexp.MustCompile(`^(\d+)\.(\d+)$`)
+	VersionPattern           = regexp.MustCompile(`^(\d+)\.(\d+)\.(\d+)$`)
 	ReleasePattern           = regexp.MustCompile(`^(\d+)$`)
 	ReleasePatternWithHotFix = regexp.MustCompile(`^(\d+).(\d+)$`)
 	ReleaseBranchPattern     = regexp.MustCompile(`^release_(\d+)\.(\d+)`)
@@ -25,7 +25,7 @@ var (
 
 // Cmd executes a shell command and returns the trimmed output
 func Cmd(command string) (string, error) {
-	fmt.Printf("> %s\n", command)
+	fmt.Fprintf(os.Stderr, "> %s\n", command)
 	cmd := exec.Command("sh", "-c", command)
 	output, err := cmd.Output()
 	if err != nil {
@@ -36,8 +36,8 @@ func Cmd(command string) (string, error) {
 
 // CmdInDir executes a shell command in a specific directory and returns the trimmed output
 func CmdInDir(command, dir string) (string, error) {
-	fmt.Printf("> %s (in %s)\n", command, dir)
-	cmd := exec.Command("sh", "-c", command)
+	fmt.Fprintf(os.Stderr, "> %s (in %s)\n", command, dir)
+	cmd := exec.Command("bash", "-c", command)
 	cmd.Dir = dir
 	output, err := cmd.Output()
 	if err != nil {
@@ -62,7 +62,7 @@ func IsVersionValid(version string, hotFix bool) bool {
 	return VersionPattern.MatchString(version)
 }
 
-// IsTagValid validates a tag format (env_version-release)
+// IsTagValid validates a tag format (env_version or env_version-release with semantic versioning)
 func IsTagValid(tag string) bool {
 	parts := strings.Split(tag, "_")
 	if len(parts) < 2 {
@@ -89,15 +89,21 @@ func IsTagValid(tag string) bool {
 	// Get version part
 	versionPart := parts[len(parts)-1]
 	versionReleaseParts := strings.Split(versionPart, "-")
-	if len(versionReleaseParts) != 2 {
-		return false
+
+	// Accept both env_version and env_version-release formats
+	if len(versionReleaseParts) == 1 {
+		// Format: env_version (e.g., dev_0.1.0)
+		version := versionReleaseParts[0]
+		return VersionPattern.MatchString(version)
+	} else if len(versionReleaseParts) == 2 {
+		// Format: env_version-release (e.g., dev_0.1.0-1)
+		version := versionReleaseParts[0]
+		release := versionReleaseParts[1]
+		return VersionPattern.MatchString(version) &&
+			(ReleasePattern.MatchString(release) || ReleasePatternWithHotFix.MatchString(release))
 	}
 
-	version := versionReleaseParts[0]
-	release := versionReleaseParts[1]
-
-	return VersionPattern.MatchString(version) &&
-		(ReleasePattern.MatchString(release) || ReleasePatternWithHotFix.MatchString(release))
+	return false
 }
 
 // GetToday returns today's date in YYYYMMDD format
@@ -196,6 +202,7 @@ func FindLastTagAndComment(env, version, service string) (string, string, error)
 // FindLastTagAndCommentInDir finds the last tag and its comment in a specific directory
 func FindLastTagAndCommentInDir(env, version, service, dir string) (string, string, error) {
 	tagPattern := TagPrefix(env, version, service) + "*"
+	// Use single quotes to prevent shell expansion of wildcards
 	command := fmt.Sprintf("git tag --list -n1 '%s' --sort=creatordate | tail -1", tagPattern)
 
 	var tagComment string

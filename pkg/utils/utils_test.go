@@ -10,12 +10,12 @@ func TestIsVersionValid(t *testing.T) {
 		hotFix  bool
 		want    bool
 	}{
-		{"1.2", false, true},
-		{"10.25", false, true},
-		{"1.2.3", false, false},
-		{"1.2-1.0", true, true},
-		{"1.2-1", false, false},
-		{"invalid", false, false},
+		{"1.2.0", false, true},    // valid: semantic version
+		{"10.25.3", false, true},  // valid: semantic version
+		{"1.2", false, false},     // invalid: missing patch version
+		{"1.2-1.0", true, true},   // valid: hotfix format
+		{"1.2-1", false, false},   // invalid: missing patch in base version
+		{"invalid", false, false}, // invalid: not a version at all
 	}
 
 	for _, tt := range tests {
@@ -31,13 +31,15 @@ func TestIsTagValid(t *testing.T) {
 		tag  string
 		want bool
 	}{
-		{"stg6_1.2-0", true},
-		{"stg6_1.2-1.0", true},
-		{"service_stg6_1.2-0", true},
-		{"invalid_env_1.2-0", false},
-		{"stg6_1.2.3-0", false},
-		{"stg6_1.2", false},
-		{"invalid", false},
+		{"stg6_1.2.0-0", true},         // valid: env_version-release with semantic versioning
+		{"stg6_1.2.0-1.0", true},       // valid: env_version-release with hotfix
+		{"stg6_1.2.0", true},           // valid: env_version with semantic versioning
+		{"service_stg6_1.2.0-0", true}, // valid: service_env_version-release
+		{"invalid_env_1.2.0-0", false}, // invalid: bad environment
+		{"stg6_1.2.3.4-0", false},      // invalid: too many version parts
+		{"stg6_1.2", false},            // invalid: missing patch version
+		{"stg6_1.2-0", false},          // invalid: missing patch version
+		{"invalid", false},             // invalid: completely wrong format
 	}
 
 	for _, tt := range tests {
@@ -54,10 +56,10 @@ func TestIncrementTag(t *testing.T) {
 		hotFix bool
 		want   string
 	}{
-		{"stg6_1.2-0", false, "stg6_1.2-1"},
-		{"stg6_1.2-0", true, "stg6_1.2-0.1"},
-		{"stg6_1.2-1.2", true, "stg6_1.2-1.3"},
-		{"service_stg6_1.2-0", false, "service_stg6_1.2-1"},
+		{"stg6_1.2.0-0", false, "stg6_1.2.0-1"},
+		{"stg6_1.2.0-0", true, "stg6_1.2.0-0.1"},
+		{"stg6_1.2.0-1.2", true, "stg6_1.2.0-1.3"},
+		{"service_stg6_1.2.0-0", false, "service_stg6_1.2.0-1"},
 		{"", false, ""},            // empty tag
 		{"invalid_tag", false, ""}, // invalid format
 		{"dev_0.0.1", false, ""},   // invalid format (no dash)

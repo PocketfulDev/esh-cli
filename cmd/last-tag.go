@@ -20,8 +20,8 @@ var lastTagCmd = &cobra.Command{
 	Short: "Shows the last tag for a given environment",
 	Long: `Shows the last tag and its comment for a given environment.
 This is useful for checking the current state before creating new tags.`,
-	Example: `  esh-cli last-tag stg6 - shows last tag for staging
-  esh-cli last-tag production2 - shows last tag for production
+	Example: `  esh-cli last-tag stg6 - shows last tag for staging in current directory
+  esh-cli last-tag production2 - shows last tag for production in current directory
   esh-cli last-tag stg6 --service myservice - shows last tag for specific service`,
 	Args: cobra.ExactArgs(1),
 	Run:  runLastTag,
@@ -42,25 +42,26 @@ func runLastTag(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// Make sure config is loaded
-	initConfig()
+	var projectPath string
 
-	// If no service specified, suggest available projects
+	// If no service specified, use current working directory
 	if lastTagService == "" {
-		suggestProjects()
-		return
+		projectPath = "." // Current working directory
+	} else {
+		// Make sure config is loaded when service is specified
+		initConfig()
+
+		// Find the project path for the specified service
+		projectPath = findProjectPath(lastTagService)
+		if projectPath == "" {
+			fmt.Fprintf(os.Stderr, "Error: service '%s' not found in configuration.\n", lastTagService)
+			fmt.Fprintf(os.Stderr, "Available services:\n")
+			suggestProjects()
+			os.Exit(1)
+		}
 	}
 
-	// Find the project path for the specified service
-	projectPath := findProjectPath(lastTagService)
-	if projectPath == "" {
-		fmt.Fprintf(os.Stderr, "Error: service '%s' not found in configuration.\n", lastTagService)
-		fmt.Fprintf(os.Stderr, "Available services:\n")
-		suggestProjects()
-		os.Exit(1)
-	}
-
-	// Get last tag for environment from the specific project directory
+	// Get last tag for environment from the specific project directory (or current directory)
 	// Note: We don't include the service name in the tag pattern since tags are in format: env_version-release
 	lastTag, lastComment, err := utils.FindLastTagAndCommentInDir(environment, "?", "", projectPath)
 	if err != nil {
@@ -71,7 +72,11 @@ func runLastTag(cmd *cobra.Command, args []string) {
 	if lastTag != "" {
 		fmt.Printf("%s %s\n", lastTag, lastComment)
 	} else {
-		fmt.Printf("No tags found for service '%s' in environment '%s'\n", lastTagService, environment)
+		if lastTagService == "" {
+			fmt.Printf("No tags found in current directory for environment '%s'\n", environment)
+		} else {
+			fmt.Printf("No tags found for service '%s' in environment '%s'\n", lastTagService, environment)
+		}
 	}
 }
 

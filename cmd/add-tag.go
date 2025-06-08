@@ -24,8 +24,9 @@ Tag format is env_major.minor.patch-release
 In some projects this triggers deployment in CircleCI.
 
 Use 'esh-cli last-tag [environment]' to see the current last tag.`,
-	Example: `  esh-cli add-tag stg6 1.2.1 - adds tag for staging on latest commit
-  esh-cli add-tag production2 1.2.1 --from stg6_1.2.1-0 - promotes from staging`,
+	Example: `  esh-cli add-tag stg6 1.2.1 - adds tag for staging on latest commit in current directory
+  esh-cli add-tag production2 1.2.1 --from stg6_1.2.1-0 - promotes from staging
+  esh-cli add-tag stg6 1.2.1 --service myservice - adds tag with service prefix`,
 	Args: cobra.ExactArgs(2),
 	Run:  runAddTag,
 }
@@ -106,9 +107,30 @@ func runAddTag(cmd *cobra.Command, args []string) {
 	}
 
 	// Get last tag for version
-	lastTag, _, err := utils.FindLastTagAndComment(environment, version, service)
+	var lastTag string
+	var projectPath string
+
+	if service == "" {
+		// Use current working directory when no service specified
+		projectPath = "."
+		lastTag, _, err = utils.FindLastTagAndCommentInDir(environment, version, "", projectPath)
+	} else {
+		// Make sure config is loaded when service is specified
+		initConfig()
+
+		// Find the project path for the specified service
+		projectPath = findProjectPath(service)
+		if projectPath == "" {
+			fmt.Fprintf(os.Stderr, "Error: service '%s' not found in configuration.\n", service)
+			os.Exit(1)
+		}
+
+		// Use the project directory when service is specified
+		lastTag, _, err = utils.FindLastTagAndCommentInDir(environment, version, "", projectPath)
+	}
+
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error finding last tag: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error finding last tag in %s: %v\n", projectPath, err)
 		os.Exit(1)
 	}
 
