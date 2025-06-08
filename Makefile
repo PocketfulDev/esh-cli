@@ -68,7 +68,7 @@ test-coverage-json:
 # Check coverage thresholds (matches GitHub Actions)
 test-coverage-check: test-coverage
 	@echo "Checking coverage thresholds..."
-	@COVERAGE=$$(go tool cover -func=coverage.out | grep total | awk '{print $$3}' | sed 's/%//'); \
+	@COVERAGE=$$(./scripts/get-coverage.sh total); \
 	echo "Total coverage: $${COVERAGE}%"; \
 	if command -v bc >/dev/null 2>&1; then \
 		if [ $$(echo "$${COVERAGE} < 30" | bc -l) -eq 1 ]; then \
@@ -79,7 +79,7 @@ test-coverage-check: test-coverage
 	else \
 		echo "ℹ️  bc not available, skipping threshold check"; \
 	fi; \
-	UTILS_COVERAGE=$$(go test -coverprofile=utils_coverage.out -covermode=atomic ./pkg/utils 2>/dev/null && go tool cover -func=utils_coverage.out | grep total | awk '{print $$3}' | sed 's/%//' || echo "0"); \
+	UTILS_COVERAGE=$$(./scripts/get-coverage.sh utils); \
 	echo "Utils package coverage: $${UTILS_COVERAGE}%"; \
 	if command -v bc >/dev/null 2>&1 && [ -n "$${UTILS_COVERAGE}" ] && [ "$${UTILS_COVERAGE}" != "0" ]; then \
 		if [ $$(echo "$${UTILS_COVERAGE} < 60" | bc -l) -eq 1 ]; then \
