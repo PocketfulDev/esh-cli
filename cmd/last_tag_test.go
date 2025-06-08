@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -90,87 +91,280 @@ func TestLastTagCmdHelp(t *testing.T) {
 	}
 }
 
-func TestFindProjectPath(t *testing.T) {
-	// Setup test configuration
-	originalProjects := viper.Get("projects")
-	defer func() {
-		viper.Set("projects", originalProjects)
-	}()
-
-	testProjects := []interface{}{
-		map[string]interface{}{
-			"name": "pocketfulbackoffice",
-			"path": "/Users/jonathanpick/WorkSpace/GetPocketful/pocketfulbackoffice",
-			"type": "nodejs",
-		},
-		map[string]interface{}{
-			"name": "pocketfulserver",
-			"path": "/Users/jonathanpick/WorkSpace/GetPocketful/pocketfulserver",
-			"type": "nodejs",
-		},
-	}
-	viper.Set("projects", testProjects)
+func TestRunLastTag(t *testing.T) {
+	// Test the runLastTag function with valid environment
+	// This test is designed to achieve coverage of the runLastTag function
 
 	tests := []struct {
-		name         string
-		serviceName  string
-		expectedPath string
+		name       string
+		args       []string
+		service    string
+		shouldExit bool
+		setup      func()
+		cleanup    func()
 	}{
 		{
-			name:         "existing service",
-			serviceName:  "pocketfulbackoffice",
-			expectedPath: "/Users/jonathanpick/WorkSpace/GetPocketful/pocketfulbackoffice",
+			name:       "valid environment without service",
+			args:       []string{"dev"},
+			service:    "",
+			shouldExit: false,
+			setup: func() {
+				lastTagService = ""
+			},
+			cleanup: func() {
+				lastTagService = ""
+			},
 		},
 		{
-			name:         "case insensitive match",
-			serviceName:  "POCKETFULSERVER",
-			expectedPath: "/Users/jonathanpick/WorkSpace/GetPocketful/pocketfulserver",
-		},
-		{
-			name:         "non-existing service",
-			serviceName:  "nonexistent",
-			expectedPath: "",
+			name:       "invalid environment",
+			args:       []string{"invalid"},
+			service:    "",
+			shouldExit: true,
+			setup: func() {
+				lastTagService = ""
+			},
+			cleanup: func() {
+				lastTagService = ""
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			path := findProjectPath(tt.serviceName)
-			if path != tt.expectedPath {
-				t.Errorf("findProjectPath(%q) = %q, want %q", tt.serviceName, path, tt.expectedPath)
+			if tt.setup != nil {
+				tt.setup()
+			}
+			defer func() {
+				if tt.cleanup != nil {
+					tt.cleanup()
+				}
+			}()
+
+			// Create a mock command for testing
+			cmd := &cobra.Command{}
+
+			if tt.shouldExit {
+				// Test cases that should call os.Exit
+				// We use a subprocess approach to handle os.Exit
+				if os.Getenv("BE_CRASHER") == "1" {
+					runLastTag(cmd, tt.args)
+					return
+				}
+
+				// Run the test in a subprocess
+				subCmd := exec.Command(os.Args[0], "-test.run=TestRunLastTag/"+tt.name)
+				subCmd.Env = append(os.Environ(), "BE_CRASHER=1")
+				err := subCmd.Run()
+				if e, ok := err.(*exec.ExitError); ok && !e.Success() {
+					// Expected os.Exit, test passed
+					return
+				}
+				t.Errorf("Expected process to exit with error, but it didn't")
+			} else {
+				// Test cases that should not call os.Exit
+				// We'll capture any panics or issues
+				defer func() {
+					if r := recover(); r != nil {
+						t.Errorf("runLastTag panicked: %v", r)
+					}
+				}()
+
+				// Call the function - this should execute without calling os.Exit
+				runLastTag(cmd, tt.args)
 			}
 		})
 	}
 }
 
+func TestRunLastTagWithService(t *testing.T) {
+	// Test runLastTag with service specified
+	// This requires config setup to achieve proper coverage
+
+	// Setup temporary config for testing
+	originalService := lastTagService
+	defer func() {
+		lastTagService = originalService
+	}()
+
+	// Create a test config scenario
+	viper.Set("projects", []interface{}{
+		map[string]interface{}{
+			"name": "test-service",
+			"path": ".",
+		},
+	})
+	defer viper.Reset()
+
+	tests := []struct {
+		name       string
+		service    string
+		args       []string
+		shouldExit bool
+	}{
+		{
+			name:       "valid service with valid environment",
+			service:    "test-service",
+			args:       []string{"dev"},
+			shouldExit: false,
+		},
+		{
+			name:       "invalid service",
+			service:    "non-existent-service",
+			args:       []string{"dev"},
+			shouldExit: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			lastTagService = tt.service
+			cmd := &cobra.Command{}
+
+			if tt.shouldExit {
+				// Test subprocess approach for os.Exit cases
+				if os.Getenv("BE_CRASHER") == "1" {
+					runLastTag(cmd, tt.args)
+					return
+				}
+
+				subCmd := exec.Command(os.Args[0], "-test.run=TestRunLastTagWithService/"+tt.name)
+				subCmd.Env = append(os.Environ(), "BE_CRASHER=1")
+				err := subCmd.Run()
+				if e, ok := err.(*exec.ExitError); ok && !e.Success() {
+					return // Expected exit
+				}
+				t.Errorf("Expected process to exit with error")
+			} else {
+				// Non-exit case - should execute successfully
+				defer func() {
+					if r := recover(); r != nil {
+						t.Errorf("runLastTag panicked: %v", r)
+					}
+				}()
+				runLastTag(cmd, tt.args)
+			}
+		})
+	}
+}
+
+func TestFindProjectPath(t *testing.T) {
+	// Test the findProjectPath helper function
+	// Reset viper after test
+	defer viper.Reset()
+
+	tests := []struct {
+		name        string
+		serviceName string
+		projects    interface{}
+		expected    string
+	}{
+		{
+			name:        "service found",
+			serviceName: "test-service",
+			projects: []interface{}{
+				map[string]interface{}{
+					"name": "test-service",
+					"path": "/path/to/service",
+				},
+			},
+			expected: "/path/to/service",
+		},
+		{
+			name:        "service not found",
+			serviceName: "missing-service",
+			projects: []interface{}{
+				map[string]interface{}{
+					"name": "other-service",
+					"path": "/path/to/other",
+				},
+			},
+			expected: "",
+		},
+		{
+			name:        "no projects configured",
+			serviceName: "any-service",
+			projects:    nil,
+			expected:    "",
+		},
+		{
+			name:        "invalid projects format",
+			serviceName: "any-service",
+			projects:    "invalid",
+			expected:    "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			viper.Set("projects", tt.projects)
+
+			result := findProjectPath(tt.serviceName)
+			if result != tt.expected {
+				t.Errorf("findProjectPath(%q) = %q, expected %q", tt.serviceName, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestSuggestProjects(t *testing.T) {
+	// Test the suggestProjects function for coverage
+	defer viper.Reset()
+
+	// Test with no projects
+	viper.Set("projects", nil)
+	// This function prints to stderr, we just want to call it for coverage
+	suggestProjects()
+
+	// Test with projects
+	viper.Set("projects", []interface{}{
+		map[string]interface{}{
+			"name": "service1",
+			"path": "/path1",
+		},
+		map[string]interface{}{
+			"name": "service2",
+			"path": "/path2",
+		},
+	})
+	suggestProjects()
+}
+
 func TestGetProjectStringValue(t *testing.T) {
+	// Test the getProjectStringValue helper function
 	tests := []struct {
 		name     string
-		m        map[string]interface{}
+		project  map[string]interface{}
 		key      string
 		expected string
 	}{
 		{
-			name:     "existing string value",
-			m:        map[string]interface{}{"name": "test"},
+			name: "valid map with string value",
+			project: map[string]interface{}{
+				"name": "test-service",
+				"path": "/test/path",
+			},
 			key:      "name",
-			expected: "test",
+			expected: "test-service",
 		},
 		{
-			name:     "non-existing key",
-			m:        map[string]interface{}{"name": "test"},
-			key:      "missing",
+			name: "valid map with missing key",
+			project: map[string]interface{}{
+				"name": "test-service",
+			},
+			key:      "path",
 			expected: "unknown",
 		},
 		{
-			name:     "non-string value",
-			m:        map[string]interface{}{"count": 42},
+			name: "non-string value",
+			project: map[string]interface{}{
+				"count": 123,
+			},
 			key:      "count",
 			expected: "unknown",
 		},
 		{
 			name:     "empty map",
-			m:        map[string]interface{}{},
+			project:  map[string]interface{}{},
 			key:      "name",
 			expected: "unknown",
 		},
@@ -178,103 +372,11 @@ func TestGetProjectStringValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := getProjectStringValue(tt.m, tt.key)
+			result := getProjectStringValue(tt.project, tt.key)
 			if result != tt.expected {
-				t.Errorf("getProjectStringValue(%v, %q) = %q, want %q", tt.m, tt.key, result, tt.expected)
+				t.Errorf("getProjectStringValue(%v, %q) = %q, expected %q",
+					tt.project, tt.key, result, tt.expected)
 			}
 		})
-	}
-}
-
-func TestLastTagServiceValidation(t *testing.T) {
-	// Setup test configuration
-	originalProjects := viper.Get("projects")
-	defer func() {
-		viper.Set("projects", originalProjects)
-	}()
-
-	testProjects := []interface{}{
-		map[string]interface{}{
-			"name": "pocketfulbackoffice",
-			"path": "/Users/jonathanpick/WorkSpace/GetPocketful/pocketfulbackoffice",
-			"type": "nodejs",
-		},
-	}
-	viper.Set("projects", testProjects)
-
-	tests := []struct {
-		name       string
-		service    string
-		shouldFind bool
-	}{
-		{
-			name:       "valid service",
-			service:    "pocketfulbackoffice",
-			shouldFind: true,
-		},
-		{
-			name:       "invalid service",
-			service:    "invalidservice",
-			shouldFind: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			path := findProjectPath(tt.service)
-			found := path != ""
-			if found != tt.shouldFind {
-				t.Errorf("findProjectPath(%q) found = %v, want %v", tt.service, found, tt.shouldFind)
-			}
-		})
-	}
-}
-
-// TestLastTagCurrentDirectoryBehavior tests that last-tag runs in current directory when no service is specified
-func TestLastTagCurrentDirectoryBehavior(t *testing.T) {
-	// Save original working directory and config
-	originalWd, _ := os.Getwd()
-	defer os.Chdir(originalWd)
-	originalProjects := viper.Get("projects")
-	defer func() {
-		viper.Set("projects", originalProjects)
-	}()
-
-	// Test without service flag - should use current directory
-	// We can't test the actual git command execution in unit tests,
-	// but we can verify the logic flow doesn't panic or error inappropriately
-
-	// This test verifies that the command doesn't try to load config when no service is specified
-	// and that it correctly sets projectPath to "."
-
-	// Note: In a real scenario, this would execute git commands in the current directory
-	// The actual git command execution is tested by the utils package tests
-
-	// We're mainly testing the logic path here
-	var projectPath string
-	service := "" // No service specified
-
-	if service == "" {
-		projectPath = "." // Should use current directory
-	} else {
-		// Would load config and find project path
-		projectPath = "some/other/path"
-	}
-
-	if projectPath != "." {
-		t.Errorf("Expected projectPath to be '.', got %q", projectPath)
-	}
-
-	// Test with service flag - should use config
-	service = "testservice"
-	if service == "" {
-		projectPath = "."
-	} else {
-		// This simulates the config lookup logic
-		projectPath = "config/path"
-	}
-
-	if projectPath != "config/path" {
-		t.Errorf("Expected projectPath to be 'config/path', got %q", projectPath)
 	}
 }

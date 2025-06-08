@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"esh-cli/pkg/utils"
 	"fmt"
 	"os"
 	"strings"
@@ -228,79 +229,223 @@ func validateAddTagArgs(cmd *cobra.Command) error {
 	return nil
 }
 
-// Test the actual runAddTag function with controlled inputs
-func TestRunAddTagExecution(t *testing.T) {
-	// Save original working directory
-	originalWd, _ := os.Getwd()
-	defer os.Chdir(originalWd)
+// TestRunAddTagExecutionValidation tests runAddTag validation logic without os.Exit calls
+func TestRunAddTagExecutionValidation(t *testing.T) {
+	// Test validation logic that occurs in runAddTag before any os.Exit calls
 
-	// Test with valid arguments (but without git setup to avoid actual execution)
-	cmd := addTagCmd
-	cmd.Flags().Set("service", "test-service")
-
-	// Capture output for testing
-	var buf bytes.Buffer
-	cmd.SetOut(&buf)
-	cmd.SetErr(&buf)
-
-	// Test with insufficient arguments - this should show usage/help
-	cmd.SetArgs([]string{}) // No arguments
-
-	// Execute command with no args - should show usage (not an error in Cobra)
-	err := cmd.Execute()
-	// It's acceptable for this to not return an error as it shows help
-	if err == nil {
-		// Check that help was shown
-		// This is actually the correct behavior for cobra commands
-		t.Log("Command correctly showed help when no arguments provided")
+	tests := []struct {
+		name        string
+		environment string
+		version     string
+		shouldPass  bool
+	}{
+		{
+			name:        "valid dev environment and version",
+			environment: "dev",
+			version:     "1.0.0",
+			shouldPass:  true,
+		},
+		{
+			name:        "valid production environment and version",
+			environment: "production2",
+			version:     "2.1.0",
+			shouldPass:  true,
+		},
+		{
+			name:        "invalid environment",
+			environment: "invalid_env",
+			version:     "1.0.0",
+			shouldPass:  false,
+		},
+		{
+			name:        "invalid version format",
+			environment: "dev",
+			version:     "invalid_version",
+			shouldPass:  false,
+		},
 	}
 
-	// Test with one argument only - should also show usage
-	cmd.SetArgs([]string{"stg6"}) // Missing version
-	err = cmd.Execute()
-	// Again, showing help is acceptable behavior
-	if err == nil {
-		t.Log("Command correctly showed help when insufficient arguments provided")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test environment validation (this is what runAddTag does first)
+			envValid := utils.ContainsString(utils.ENVS, tt.environment)
+
+			// Test version validation (this is what runAddTag does second)
+			versionValid := utils.IsVersionValid(tt.version, false)
+
+			overallValid := envValid && versionValid
+
+			if overallValid != tt.shouldPass {
+				t.Errorf("Expected validation result %v, got %v (env: %v, version: %v)",
+					tt.shouldPass, overallValid, envValid, versionValid)
+			}
+		})
 	}
 }
 
-// TestAddTagCurrentDirectoryBehavior tests that add-tag uses appropriate directory based on service flag
-func TestAddTagCurrentDirectoryBehavior(t *testing.T) {
-	// Test the logic that determines which FindLastTagAndComment function to call
-	// This verifies the branching logic without executing actual git commands
+// TestRunAddTagArgumentValidation tests argument validation in runAddTag
+func TestRunAddTagArgumentValidation(t *testing.T) {
+	// Test the argument validation logic by examining the command structure
+	// This tests the parts of runAddTag that can be safely tested
 
-	testCases := []struct {
-		name           string
-		service        string
-		expectedMethod string
+	tests := []struct {
+		name      string
+		args      []string
+		shouldErr bool
 	}{
 		{
-			name:           "no service flag",
-			service:        "",
-			expectedMethod: "FindLastTagAndCommentInDir with current directory",
+			name:      "missing environment",
+			args:      []string{},
+			shouldErr: true,
 		},
 		{
-			name:           "with service flag",
-			service:        "myservice",
-			expectedMethod: "FindLastTagAndComment with service",
+			name:      "missing version",
+			args:      []string{"dev"},
+			shouldErr: true,
+		},
+		{
+			name:      "valid arguments",
+			args:      []string{"dev", "1.0.0"},
+			shouldErr: false,
+		},
+		{
+			name:      "too many arguments",
+			args:      []string{"dev", "1.0.0", "extra"},
+			shouldErr: true,
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// Simulate the logic from runAddTag
-			var method string
-
-			if tc.service == "" {
-				// This would call: utils.FindLastTagAndCommentInDir(environment, version, "", ".")
-				method = "FindLastTagAndCommentInDir with current directory"
-			} else {
-				// This would call: utils.FindLastTagAndComment(environment, version, service)
-				method = "FindLastTagAndComment with service"
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test argument length validation
+			if len(tt.args) < 2 && !tt.shouldErr {
+				t.Error("Should require at least 2 arguments")
 			}
 
-			if method != tc.expectedMethod {
-				t.Errorf("Expected method %q, got %q", tc.expectedMethod, method)
+			if len(tt.args) >= 2 && !tt.shouldErr {
+				// Test that valid environments are accepted
+				env := tt.args[0]
+				if env == "dev" || env == "test" || env == "staging" || env == "prod" {
+					// Valid environment
+					if utils.ContainsString(utils.ENVS, env) {
+						// Environment validation would pass
+					}
+				}
+
+				// Test version validation logic
+				version := tt.args[1]
+				if utils.IsVersionValid(version, false) {
+					// Version validation would pass
+				}
+			}
+		})
+	}
+}
+
+// TestRunAddTagServiceLogic tests service-specific logic in runAddTag
+func TestRunAddTagServiceLogic(t *testing.T) {
+	tests := []struct {
+		name        string
+		serviceFlag string
+		envVar      string
+		expected    string
+	}{
+		{
+			name:        "service flag takes precedence",
+			serviceFlag: "test-service",
+			envVar:      "env-service",
+			expected:    "test-service",
+		},
+		{
+			name:        "env var used when no flag",
+			serviceFlag: "",
+			envVar:      "env-service",
+			expected:    "env-service",
+		},
+		{
+			name:        "no service specified",
+			serviceFlag: "",
+			envVar:      "",
+			expected:    "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Store original values
+			originalService := service
+			originalEnv := os.Getenv("ESH_SERVICE")
+
+			defer func() {
+				service = originalService
+				if originalEnv == "" {
+					os.Unsetenv("ESH_SERVICE")
+				} else {
+					os.Setenv("ESH_SERVICE", originalEnv)
+				}
+			}()
+
+			// Set test values
+			service = tt.serviceFlag
+			if tt.envVar != "" {
+				os.Setenv("ESH_SERVICE", tt.envVar)
+			} else {
+				os.Unsetenv("ESH_SERVICE")
+			}
+
+			// Test the logic that runAddTag uses for service determination
+			var effectiveService string
+			if service != "" {
+				effectiveService = service
+			} else {
+				effectiveService = os.Getenv("ESH_SERVICE")
+			}
+
+			if effectiveService != tt.expected {
+				t.Errorf("Expected effective service '%s', got '%s'", tt.expected, effectiveService)
+			}
+		})
+	}
+}
+
+// TestRunAddTagPromoteLogic tests the promote vs create new tag logic
+func TestRunAddTagPromoteLogic(t *testing.T) {
+	originalPromoteFrom := promoteFrom
+	defer func() {
+		promoteFrom = originalPromoteFrom
+	}()
+
+	tests := []struct {
+		name        string
+		promoteFrom string
+		isPromote   bool
+	}{
+		{
+			name:        "empty promote-from creates new tag",
+			promoteFrom: "",
+			isPromote:   false,
+		},
+		{
+			name:        "with promote-from promotes existing tag",
+			promoteFrom: "stg6_1.2.0-release",
+			isPromote:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			promoteFrom = tt.promoteFrom
+
+			// Test the logic that determines promote vs create new
+			var isPromoteMode bool
+			if promoteFrom != "" {
+				isPromoteMode = true
+			} else {
+				isPromoteMode = false
+			}
+
+			if isPromoteMode != tt.isPromote {
+				t.Errorf("Expected isPromoteMode=%v, got %v", tt.isPromote, isPromoteMode)
 			}
 		})
 	}

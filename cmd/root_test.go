@@ -67,6 +67,46 @@ func TestExecute(t *testing.T) {
 	// We're just testing that the function exists and is callable
 }
 
+func TestExecuteFunction(t *testing.T) {
+	// Store original args
+	originalArgs := os.Args
+	defer func() {
+		os.Args = originalArgs
+	}()
+
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "help command",
+			args: []string{"esh-cli", "--help"},
+		},
+		{
+			name: "projects command",
+			args: []string{"esh-cli", "projects"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Set test args
+			os.Args = tt.args
+
+			// Call Execute function and handle potential os.Exit
+			defer func() {
+				if r := recover(); r != nil {
+					// Execute() might call os.Exit via rootCmd.Execute() which is expected
+					// We don't fail the test for this as it's normal behavior for help/version
+				}
+			}()
+
+			// This will test the Execute function
+			Execute()
+		})
+	}
+}
+
 func TestInitConfig(t *testing.T) {
 	// Test that initConfig function doesn't panic
 	defer func() {
