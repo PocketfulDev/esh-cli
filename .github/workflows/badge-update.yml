@@ -22,13 +22,14 @@ jobs:
 
     - name: Run tests and generate coverage
       run: |
-        go test -v -coverprofile=coverage.out -covermode=atomic ./...
-        go tool cover -func=coverage.out > coverage-func.txt
+        mkdir -p build
+        go test -v -coverprofile=build/coverage.out -covermode=atomic ./...
+        go tool cover -func=build/coverage.out > build/coverage-func.txt
 
     - name: Extract coverage percentage
       id: coverage
       run: |
-        COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        COVERAGE=$(go tool cover -func=build/coverage.out | grep total | awk '{print $3}' | sed 's/%//')
         echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
         
         # Determine color based on coverage
@@ -71,7 +72,8 @@ jobs:
     - name: Check build status
       id: build
       run: |
-        if go build -o esh-cli-test .; then
+        mkdir -p build
+        if go build -o build/esh-cli-test .; then
           echo "status=passing" >> $GITHUB_OUTPUT
           echo "color=brightgreen" >> $GITHUB_OUTPUT
         else

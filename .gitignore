@@ -22,7 +22,8 @@ esh-cli
 esh-cli-*
 dist/
 
-# Build artifacts
+# Build artifacts and outputs
+build/
 *.tar.gz
 checksums.txt
 

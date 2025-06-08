@@ -6,15 +6,39 @@
 
 A Go CLI tool for managing git tags and deployments. This is a complete refactor of the original Python script using Cobra and Viper.
 
+## 📚 Documentation
+
+**[📖 Complete Documentation](docs/README.md)** - Browse all guides, references, and setup instructions
+
+### Quick Links
+- **[🚀 Quick Start Guide](docs/guides/QUICK_START_GUIDE.md)** - Get started in 5 minutes
+- **[📖 Command Reference](docs/reference/COMMAND_REFERENCE.md)** - Complete command documentation
+- **[⚙️ Setup Guides](docs/setup/)** - Installation and deployment guides
+- **[🔗 Integrations](docs/reference/INTEGRATIONS.md)** - Enterprise integrations
+
 ## Features
 
+### Core Functionality
 - Add and push hot fix tags
 - Promote tags between environments  
 - Support for service-specific tags
 - Git repository validation
 - Interactive prompts for safety
-- **Comprehensive test coverage** with automated reporting
+
+### 🚀 Semantic Versioning (NEW)
+- **Intelligent version bumping** with `--major`, `--minor`, `--patch` flags
+- **Auto-detection** from conventional commit messages
+- **Branch-aware versioning** with git flow integration
+- **Version comparison** and semantic difference analysis
+- **Automated changelog generation** from git history
+- **Cross-environment version tracking** and synchronization
+- **Preview mode** for safe version management
+
+### Infrastructure
+- **Comprehensive test coverage** (152+ tests) with automated reporting
 - **Cross-platform builds** (macOS, Linux, ARM64 support)
+- **CI/CD integration** ready with GitHub Actions
+- **Enterprise-grade** semantic versioning capabilities
 
 ## Installation
 
@@ -31,7 +55,7 @@ brew install esh-cli
 brew upgrade esh-cli
 ```
 
-**Note**: Works with private repositories! See [PRIVATE_REPO_GUIDE.md](PRIVATE_REPO_GUIDE.md) for setup options.
+**Note**: Works with private repositories! See [PRIVATE_REPO_GUIDE.md](docs/setup/PRIVATE_REPO_GUIDE.md) for setup options.
 
 ### Build from source
 
@@ -53,15 +77,13 @@ Download the latest release from the [releases page](https://github.com/Pocketfu
 
 ## Usage
 
-### Basic Commands
+### 🏷️ Traditional Tag Management
 
 Show help:
 ```bash
 ./esh-cli --help
 ./esh-cli add-tag --help
 ```
-
-### Examples
 
 Show last tag for staging:
 ```bash
@@ -84,6 +106,81 @@ Add hot fix tag (must be on release branch):
 ```
 
 Add tag with service name:
+```bash
+./esh-cli add-tag stg6 1.2-1 --service myservice
+```
+
+### 🚀 Semantic Versioning Commands
+
+#### Version Bumping
+```bash
+# Bump semantic versions with flags
+./esh-cli bump-version stg6 --major     # 1.2.3 → 2.0.0-1
+./esh-cli bump-version stg6 --minor     # 1.2.3 → 1.3.0-1  
+./esh-cli bump-version stg6 --patch     # 1.2.3 → 1.2.4-1
+
+# Auto-detect from conventional commits
+./esh-cli bump-version stg6 --auto      # Analyzes commit messages
+
+# Preview mode (safe dry-run)
+./esh-cli bump-version stg6 --major --preview
+
+# Service-specific bumping
+./esh-cli bump-version stg6 --patch --service myservice
+```
+
+#### Version Listing & Filtering
+```bash
+# List versions with advanced filtering
+./esh-cli version-list stg6                    # All versions for stg6
+./esh-cli version-list stg6 --major 1          # Filter by major version
+./esh-cli version-list stg6 --format json      # JSON output
+./esh-cli version-list --all                   # Cross-environment view
+```
+
+#### Version Comparison & Analysis
+```bash
+# Compare specific versions
+./esh-cli version-diff stg6_1.2.3-1 stg6_1.2.4-1
+
+# Show version history
+./esh-cli version-diff stg6 --history
+
+# Show commits between versions
+./esh-cli version-diff stg6_1.2.3-1 --commits
+
+# Detailed statistics
+./esh-cli version-diff stg6_1.2.3-1 stg6_1.2.4-1 --stats
+```
+
+#### Changelog Generation
+```bash
+# Generate markdown changelog
+./esh-cli changelog stg6 --format markdown
+
+# Parse conventional commits
+./esh-cli changelog --conventional-commits
+
+# Full changelog to file
+./esh-cli changelog --full --output CHANGELOG.md
+
+# Between specific tags
+./esh-cli changelog stg6_1.2.0-1..stg6_1.3.0-1
+```
+
+#### Git Flow Integration
+```bash
+# Branch-based version suggestions
+./esh-cli branch-version --suggest
+
+# Auto-create tag based on branch type
+./esh-cli branch-version --auto-tag stg6
+
+# Release preparation workflow
+./esh-cli branch-version --release-prep
+```
+
+### Traditional Examples
 ```bash
 ./esh-cli add-tag stg6 1.2-1 --service myservice
 ```
@@ -170,7 +267,7 @@ This project features comprehensive test integration with GitHub:
 - **Quality Gates**: Tests must pass before releases
 - **Cross-Platform Testing**: Linux, macOS (Intel & ARM)
 
-See [GITHUB_TEST_INTEGRATION.md](GITHUB_TEST_INTEGRATION.md) for detailed information about test reporting and coverage.
+See [GITHUB_TEST_INTEGRATION.md](docs/setup/GITHUB_TEST_INTEGRATION.md) for detailed information about test reporting and coverage.
 
 ### Coverage Thresholds
 - **Overall**: 30% (CLI tools have integration-heavy paths)
@@ -182,12 +279,12 @@ See [GITHUB_TEST_INTEGRATION.md](GITHUB_TEST_INTEGRATION.md) for detailed inform
 
 1. **Prepare the release**:
    ```bash
-   ./release.sh 1.0.0
+   ./scripts/release.sh 1.0.0
    ```
 
 2. **Update Homebrew formula** (after GitHub Actions completes):
    ```bash
-   ./update-formula.sh 1.0.0 your-org
+   ./scripts/update-formula.sh 1.0.0 your-org
    ```
 
 3. **Update your Homebrew tap** (if using organization tap):
@@ -199,7 +296,7 @@ See [GITHUB_TEST_INTEGRATION.md](GITHUB_TEST_INTEGRATION.md) for detailed inform
    git push
    ```
 
-For detailed setup instructions, see [HOMEBREW_SETUP.md](HOMEBREW_SETUP.md).
+For detailed setup instructions, see [HOMEBREW_SETUP.md](docs/setup/HOMEBREW_SETUP.md).
 
 ## Migration from Python
 

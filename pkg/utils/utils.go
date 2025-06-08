@@ -139,38 +139,13 @@ func IncrementTag(tag string, hotFix bool) string {
 
 	// Handle tags without release suffix (e.g., dev_0.1.0)
 	if len(versionReleaseParts) == 1 {
-		// Tag has no release suffix, so increment the semantic version itself
+		// Tag has no release suffix, so add release suffix -1 (first release)
 		version := versionReleaseParts[0]
-
-		// Parse semantic version parts
-		versionMatches := VersionPattern.FindStringSubmatch(version)
-		if len(versionMatches) != 4 {
-			return ""
-		}
-
-		major, err := strconv.Atoi(versionMatches[1])
-		if err != nil {
-			return ""
-		}
-		minor, err := strconv.Atoi(versionMatches[2])
-		if err != nil {
-			return ""
-		}
-		patch, err := strconv.Atoi(versionMatches[3])
-		if err != nil {
-			return ""
-		}
-
-		if hotFix {
-			// For hotfix, increment patch version
-			patch++
+		if !hotFix {
+			return fmt.Sprintf("%s_%s-1", prefix, version)
 		} else {
-			// For regular increment, increment patch version
-			patch++
+			return fmt.Sprintf("%s_%s-0.1", prefix, version)
 		}
-
-		newVersion := fmt.Sprintf("%d.%d.%d", major, minor, patch)
-		return fmt.Sprintf("%s_%s", prefix, newVersion)
 	}
 
 	// Handle tags with release suffix (e.g., dev_0.1.0-0)
@@ -241,7 +216,7 @@ func FindLastTagAndComment(env, version, service string) (string, string, error)
 func FindLastTagAndCommentInDir(env, version, service, dir string) (string, string, error) {
 	tagPattern := TagPrefix(env, version, service) + "*"
 	// Use single quotes to prevent shell expansion of wildcards
-	command := fmt.Sprintf("git tag --list -n1 '%s' --sort=creatordate | tail -1", tagPattern)
+	command := fmt.Sprintf("git tag --list -n1 '%s'", tagPattern)
 
 	var tagComment string
 	var err error
@@ -256,19 +231,77 @@ func FindLastTagAndCommentInDir(env, version, service, dir string) (string, stri
 		return "", "", err
 	}
 
-	parts := strings.SplitN(tagComment, " ", 2)
-	tag := parts[0]
-	comment := ""
-	if len(parts) > 1 {
-		comment = strings.TrimSpace(parts[1])
+	// Split by lines and find the highest version tag
+	lines := strings.Split(strings.TrimSpace(tagComment), "\n")
+	if len(lines) == 0 {
+		return "", "", err
 	}
 
-	// Validate that the tag is in the correct format before returning it
-	if !IsTagValid(tag) {
-		return "", "", nil // Return empty if tag format is invalid
+	var bestTag, bestComment string
+	var highestReleaseNum = -1
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		parts := strings.SplitN(line, " ", 2)
+		tag := parts[0]
+		comment := ""
+		if len(parts) > 1 {
+			comment = strings.TrimSpace(parts[1])
+		}
+
+		// Validate that the tag is in the correct format
+		if !IsTagValid(tag) {
+			continue
+		}
+
+		// Parse the tag to find release number
+		tagParts := strings.Split(tag, "_")
+		if len(tagParts) < 2 {
+			continue
+		}
+
+		versionPart := tagParts[len(tagParts)-1]
+		versionReleaseParts := strings.Split(versionPart, "-")
+
+		if len(versionReleaseParts) == 1 {
+			// Tag without release suffix (e.g., demo_0.1.1)
+			// Only use this if we haven't found any release tags
+			if highestReleaseNum == -1 {
+				bestTag = tag
+				bestComment = comment
+				highestReleaseNum = 0 // Consider base version as release 0
+			}
+		} else if len(versionReleaseParts) == 2 {
+			// Tag with release suffix (e.g., demo_0.1.1-1)
+			releaseStr := versionReleaseParts[1]
+
+			// Handle hotfix releases (e.g., 1.2)
+			if strings.Contains(releaseStr, ".") {
+				releaseParts := strings.Split(releaseStr, ".")
+				if len(releaseParts) == 2 {
+					releaseStr = releaseParts[0] // Use the main release number
+				}
+			}
+
+			if releaseNum, err := strconv.Atoi(releaseStr); err == nil {
+				if releaseNum > highestReleaseNum {
+					highestReleaseNum = releaseNum
+					bestTag = tag
+					bestComment = comment
+				}
+			}
+		}
 	}
 
-	return tag, comment, nil
+	if bestTag == "" {
+		return "", "", nil
+	}
+
+	return bestTag, bestComment, nil
 }
 
 // IsReleaseBranch checks if branch is a release branch

@@ -13,7 +13,8 @@ all: build
 # Build the binary
 build:
 	@echo "Building $(BINARY_NAME)..."
-	go build $(LDFLAGS) -o $(BINARY_NAME) $(MAIN_PACKAGE)
+	@mkdir -p build
+	go build $(LDFLAGS) -o build/$(BINARY_NAME) $(MAIN_PACKAGE)
 
 # Build binaries for all platforms
 release-build:
@@ -28,7 +29,7 @@ release-build:
 clean:
 	@echo "Cleaning..."
 	go clean
-	rm -f $(BINARY_NAME)
+	rm -rf build/
 	rm -rf dist/
 
 # Install the binary to GOPATH/bin
@@ -44,9 +45,10 @@ test:
 # Run tests with coverage
 test-coverage:
 	@echo "Running tests with coverage..."
-	go test -v -coverprofile=coverage.out -covermode=atomic ./...
-	go tool cover -html=coverage.out -o coverage.html
-	go tool cover -func=coverage.out
+	@mkdir -p build
+	go test -v -coverprofile=build/coverage.out -covermode=atomic ./...
+	go tool cover -html=build/coverage.out -o build/coverage.html
+	go tool cover -func=build/coverage.out
 
 # Run tests with race detection
 test-race:
@@ -56,14 +58,15 @@ test-race:
 # Run tests with coverage and JSON output (matches GitHub Actions)
 test-coverage-json:
 	@echo "Running tests with coverage and JSON output..."
-	go test -v -race -coverprofile=coverage.out -covermode=atomic -json ./... > test-results.json
-	go tool cover -html=coverage.out -o coverage.html
-	go tool cover -func=coverage.out > coverage-func.txt
+	@mkdir -p build
+	go test -v -race -coverprofile=build/coverage.out -covermode=atomic -json ./... > build/test-results.json
+	go tool cover -html=build/coverage.out -o build/coverage.html
+	go tool cover -func=build/coverage.out > build/coverage-func.txt
 	@echo "Coverage files generated:"
-	@echo "  - coverage.out (Go coverage profile)"
-	@echo "  - coverage.html (HTML report)"
-	@echo "  - coverage-func.txt (Function breakdown)"
-	@echo "  - test-results.json (JSON test output)"
+	@echo "  - build/coverage.out (Go coverage profile)"
+	@echo "  - build/coverage.html (HTML report)"
+	@echo "  - build/coverage-func.txt (Function breakdown)"
+	@echo "  - build/test-results.json (JSON test output)"
 
 # Check coverage thresholds (matches GitHub Actions)
 test-coverage-check: test-coverage

@@ -44,10 +44,12 @@ jobs:
 
     - name: Run tests with coverage and JSON output
       run: |
+        # Create build directory for outputs
+        mkdir -p build
         # Run tests with JSON output for better reporting
-        go test -v -race -coverprofile=coverage.out -covermode=atomic -json ./... > test-results.json
-        go tool cover -html=coverage.out -o coverage.html
-        go tool cover -func=coverage.out > coverage-func.txt
+        go test -v -race -coverprofile=build/coverage.out -covermode=atomic -json ./... > build/test-results.json
+        go tool cover -html=build/coverage.out -o build/coverage.html
+        go tool cover -func=build/coverage.out > build/coverage-func.txt
 
     - name: Parse test results
       uses: dorny/test-reporter@v2
