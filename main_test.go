@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -42,14 +43,20 @@ func TestMainFunctionExecution(t *testing.T) {
 	// Test main function by building and running the binary
 	// This is the most reliable way to test main() function coverage
 
+	// Get current working directory for CI compatibility
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get working directory: %v", err)
+	}
+
 	// Build the binary for testing
 	cmd := exec.Command("go", "build", "-o", "esh-cli-test", ".")
-	cmd.Dir = "/Users/jonathanpick/esh-cli-git"
-	err := cmd.Run()
+	cmd.Dir = wd
+	err = cmd.Run()
 	if err != nil {
 		t.Fatalf("Failed to build test binary: %v", err)
 	}
-	defer os.Remove("/Users/jonathanpick/esh-cli-git/esh-cli-test")
+	defer os.Remove(filepath.Join(wd, "esh-cli-test"))
 
 	tests := []struct {
 		name        string
@@ -72,7 +79,7 @@ func TestMainFunctionExecution(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Run the binary with test args
 			execCmd := exec.Command("./esh-cli-test", tt.args...)
-			execCmd.Dir = "/Users/jonathanpick/esh-cli-git"
+			execCmd.Dir = wd
 
 			output, err := execCmd.CombinedOutput()
 

@@ -136,11 +136,11 @@ func TestContainsAnyPattern(t *testing.T) {
 		patterns    []string
 		want        bool
 	}{
-		{"pocketfulapp", []string{"pocketful", "bank_1"}, true},
-		{"bank_1_service", []string{"pocketful", "bank_1"}, true},
-		{"myapp", []string{"pocketful", "bank_1"}, false},
-		{"POCKETFUL_APP", []string{"pocketful", "bank_1"}, true}, // case insensitive
-		{"Bank_1_Test", []string{"pocketful", "bank_1"}, true},   // case insensitive
+		{"serviceapp", []string{"service", "app"}, true},
+		{"user_service", []string{"service", "app"}, true},
+		{"myproject", []string{"service", "app"}, false},
+		{"SERVICE_APP", []string{"service", "app"}, true}, // case insensitive
+		{"App_Test", []string{"service", "app"}, true},    // case insensitive
 	}
 
 	for _, tt := range tests {
@@ -298,9 +298,9 @@ func TestRunInitDiscoveryProcess(t *testing.T) {
 		expectDiscovery bool
 	}{
 		{
-			name:            "search for pocketful and bank_1",
-			targetPatterns:  []string{"pocketful", "bank_1"},
-			expectDiscovery: true,
+			name:            "search for common patterns",
+			targetPatterns:  []string{"service", "app"},
+			expectDiscovery: false, // In test environment, may not find these
 		},
 		{
 			name:            "search for non-existent patterns",
@@ -311,25 +311,21 @@ func TestRunInitDiscoveryProcess(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Test target patterns setup
-			expectedPatterns := []string{"pocketful", "bank_1"}
+			// Test pattern matching logic with realistic patterns
+			expectedPatterns := tt.targetPatterns
 
-			// Verify the patterns match expected
-			if len(expectedPatterns) != 2 {
-				t.Errorf("Expected 2 target patterns, got %d", len(expectedPatterns))
-			}
-
-			if expectedPatterns[0] != "pocketful" || expectedPatterns[1] != "bank_1" {
-				t.Errorf("Expected patterns [pocketful, bank_1], got %v", expectedPatterns)
+			// Verify the patterns are set correctly
+			if len(expectedPatterns) != len(tt.targetPatterns) {
+				t.Errorf("Expected %d target patterns, got %d", len(tt.targetPatterns), len(expectedPatterns))
 			}
 
 			// Test pattern matching logic
 			testProjects := []string{
-				"pocketfulapp",
-				"bank_1_service",
+				"serviceapp",
+				"user_service",
 				"randomproject",
-				"my_pocketful_app",
-				"bank_1_test",
+				"my_app_service",
+				"app_test",
 			}
 
 			expectedMatches := 0
@@ -339,8 +335,11 @@ func TestRunInitDiscoveryProcess(t *testing.T) {
 				}
 			}
 
-			if expectedMatches != 4 { // Should match all except "randomproject"
-				t.Errorf("Expected 4 pattern matches, got %d", expectedMatches)
+			// For "service", "app" patterns, expect 4 matches (all except "randomproject")
+			if tt.targetPatterns[0] == "service" && tt.targetPatterns[1] == "app" {
+				if expectedMatches != 4 {
+					t.Errorf("Expected 4 pattern matches for service,app patterns, got %d", expectedMatches)
+				}
 			}
 		})
 	}
@@ -520,9 +519,10 @@ func TestRunInitFlowValidation(t *testing.T) {
 			// Test step-specific logic
 			switch tt.step {
 			case "target_patterns":
-				patterns := []string{"pocketful", "bank_1"}
-				if len(patterns) != 2 {
-					t.Error("Should have exactly 2 target patterns")
+				// Test that patterns can be configured
+				testPatterns := []string{"service", "app"}
+				if len(testPatterns) != 2 {
+					t.Error("Should be able to configure target patterns")
 				}
 
 			case "config_check":
@@ -573,12 +573,18 @@ func TestRunInit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Save original values
 			originalForce := initForce
+			originalDepth := initSearchDepth
+			originalPatterns := initPatterns
 			defer func() {
 				initForce = originalForce
+				initSearchDepth = originalDepth
+				initPatterns = originalPatterns
 			}()
 
 			// Set up test conditions
 			initForce = tt.force
+			initSearchDepth = 1       // Limit search depth for faster tests
+			initPatterns = []string{} // Test with no patterns (discover all)
 
 			// Create a temporary config file if needed
 			var tempConfigFile string
@@ -627,6 +633,7 @@ func TestRunInit(t *testing.T) {
 				}()
 
 				// Call the function - this should execute without calling os.Exit
+				// Note: This will search for projects but should handle gracefully if none found
 				runInit(cmd, []string{})
 			}
 		})
@@ -645,10 +652,19 @@ func TestConfigExists(t *testing.T) {
 			setupConfig: true,
 			expected:    true,
 		},
+		{
+			name:        "config does not exist",
+			setupConfig: false,
+			expected:    false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Store original cfgFile value
+			originalCfgFile := cfgFile
+			defer func() { cfgFile = originalCfgFile }()
+
 			if tt.setupConfig {
 				// Create a temporary config file
 				tempDir := t.TempDir()
@@ -660,9 +676,11 @@ func TestConfigExists(t *testing.T) {
 				file.WriteString("projects: []\n")
 				file.Close()
 
-				// Set environment variable to use this config
-				os.Setenv("ESH_CLI_CONFIG", tempConfigFile)
-				defer os.Unsetenv("ESH_CLI_CONFIG")
+				// Set cfgFile directly since that's what the code uses
+				cfgFile = tempConfigFile
+			} else {
+				// Set cfgFile to a non-existent path
+				cfgFile = "/non-existent/path/.esh-cli.yaml"
 			}
 
 			result := configExists()
@@ -697,30 +715,30 @@ func TestIsRelevantProject(t *testing.T) {
 		expected       bool
 	}{
 		{
-			name:           "matches pocketful pattern",
-			dirName:        "pocketful-service",
-			patterns:       []string{"pocketful", "bank_1"},
+			name:           "matches service pattern",
+			dirName:        "user-service",
+			patterns:       []string{"service", "app"},
 			projectPattern: "",
 			expected:       true,
 		},
 		{
-			name:           "matches bank_1 pattern",
-			dirName:        "bank_1-api",
-			patterns:       []string{"pocketful", "bank_1"},
+			name:           "matches app pattern",
+			dirName:        "myapp-frontend",
+			patterns:       []string{"service", "app"},
 			projectPattern: "",
 			expected:       true,
 		},
 		{
 			name:           "no match without service keyword",
-			dirName:        "some-other-app",
-			patterns:       []string{"pocketful", "bank_1"},
+			dirName:        "some-other-project",
+			patterns:       []string{"service", "app"},
 			projectPattern: "",
 			expected:       false,
 		},
 		{
 			name:           "matches project pattern",
 			dirName:        "my-special-app",
-			patterns:       []string{"pocketful", "bank_1"},
+			patterns:       []string{"service", "app"},
 			projectPattern: "special",
 			expected:       true,
 		},

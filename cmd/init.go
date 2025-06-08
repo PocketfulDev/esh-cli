@@ -14,15 +14,17 @@ import (
 var (
 	initSearchDepth int
 	initForce       bool
+	initPatterns    []string
 )
 
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Initialize ESH CLI with AI project discovery for pocketful and bank_1",
-	Long: `Initialize ESH CLI configuration by automatically discovering projects containing "pocketful" or "bank_1".
-This command will search for projects with these specific patterns and save their paths to your configuration file.`,
-	Example: `  esh-cli init - discover projects containing "pocketful" or "bank_1"
+	Short: "Initialize ESH CLI by discovering projects in your workspace",
+	Long: `Initialize ESH CLI configuration by automatically discovering projects in your workspace.
+You can specify patterns to search for, or let it discover all projects automatically.`,
+	Example: `  esh-cli init - discover all projects automatically
+  esh-cli init --patterns "myapp,service" - discover projects containing "myapp" or "service"
   esh-cli init --depth 3 - search up to 3 directories deep
   esh-cli init --force - overwrite existing configuration`,
 	Run: runInit,
@@ -32,14 +34,11 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 	initCmd.Flags().IntVarP(&initSearchDepth, "depth", "d", 2, "maximum search depth for project discovery")
 	initCmd.Flags().BoolVarP(&initForce, "force", "f", false, "force overwrite existing configuration")
+	initCmd.Flags().StringSliceVarP(&initPatterns, "patterns", "p", []string{}, "patterns to search for in project names (comma-separated)")
 }
 
 func runInit(cmd *cobra.Command, args []string) {
-	fmt.Println("🤖 ESH CLI AI Initialization Starting...")
-
-	// Search for specific patterns: "pocketful" and "bank_1"
-	targetPatterns := []string{"pocketful", "bank_1"}
-	fmt.Printf("Searching for projects containing patterns: %v\n", targetPatterns)
+	fmt.Println("🤖 ESH CLI Initialization Starting...")
 
 	// Check if config already exists
 	if !initForce && configExists() {
@@ -48,15 +47,31 @@ func runInit(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Discover projects with specific patterns
-	projects, err := discoverSpecificProjects(targetPatterns)
+	var projects []Project
+	var err error
+
+	// Use patterns from flag, or discover all projects if none specified
+	if len(initPatterns) > 0 {
+		fmt.Printf("Searching for projects containing patterns: %v\n", initPatterns)
+		projects, err = discoverSpecificProjects(initPatterns)
+	} else {
+		fmt.Println("Discovering all projects in your workspace...")
+		projects, err = discoverProjects("")
+	}
+
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error discovering projects: %v\n", err)
 		os.Exit(1)
 	}
 
 	if len(projects) == 0 {
-		fmt.Println("❌ No projects found matching the specified patterns.")
+		if len(initPatterns) > 0 {
+			fmt.Printf("❌ No projects found matching patterns: %v\n", initPatterns)
+			fmt.Println("💡 Try using different patterns or run without --patterns to discover all projects")
+		} else {
+			fmt.Println("❌ No projects found in your workspace.")
+			fmt.Println("💡 Make sure you're running this command from a directory that contains projects")
+		}
 		return
 	}
 
