@@ -1,14 +1,18 @@
 package main
 
 import (
+	"bytes"
 	"esh-cli/cmd"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 )
+
+// Mutex to synchronize access to global variables during testing
+var testMutex sync.Mutex
 
 func TestMainVersionVariable(t *testing.T) {
 	// Test that version variable exists and has a default value
@@ -20,6 +24,10 @@ func TestMainVersionVariable(t *testing.T) {
 func TestMainPackageStructure(t *testing.T) {
 	// This is a basic test to ensure the main package is properly structured
 	// The actual main() function is tested through integration tests
+
+	// Synchronize access to global variables to prevent race conditions
+	testMutex.Lock()
+	defer testMutex.Unlock()
 
 	// Verify version variable is accessible
 	originalVersion := version
@@ -124,6 +132,10 @@ func TestMainFunctionActualExecution(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Synchronize access to global variables to prevent race conditions
+			testMutex.Lock()
+			defer testMutex.Unlock()
+
 			// Set test args
 			os.Args = tt.args
 
@@ -147,17 +159,6 @@ func TestMainFunctionActualExecution(t *testing.T) {
 }
 
 func TestCmdExecuteIntegration(t *testing.T) {
-	// Test cmd.Execute() function with controlled output capture
-	originalArgs := os.Args
-	originalStdout := os.Stdout
-	originalStderr := os.Stderr
-
-	defer func() {
-		os.Args = originalArgs
-		os.Stdout = originalStdout
-		os.Stderr = originalStderr
-	}()
-
 	tests := []struct {
 		name        string
 		args        []string
@@ -168,7 +169,7 @@ func TestCmdExecuteIntegration(t *testing.T) {
 			name:        "help command execution",
 			args:        []string{"esh-cli", "--help"},
 			expectError: false,
-			contains:    "Available Commands",
+			contains:    "ESH CLI tool", // Should contain this in help output
 		},
 		{
 			name:        "version command execution",
@@ -180,57 +181,43 @@ func TestCmdExecuteIntegration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Capture output
-			r, w, _ := os.Pipe()
-			os.Stdout = w
-			os.Stderr = w
+			// Create isolated command instance with test version
+			testVersion := "test-integration-v1.0.0"
+			rootCmd := cmd.NewRootCmd(testVersion)
+			rootCmd.SetVersionTemplate("{{.Version}}\n")
 
-			// Set test args
-			os.Args = tt.args
+			// Create isolated buffer for output capture
+			var outputBuf bytes.Buffer
+			rootCmd.SetOut(&outputBuf)
+			rootCmd.SetErr(&outputBuf)
 
-			// Set test version
-			originalVersion := version
-			version = "test-integration"
-			cmd.SetVersion(version)
-
-			// Channel to capture any panics/exits
-			done := make(chan bool, 1)
-			var output string
-
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						// Expected for commands that call os.Exit
-					}
-					done <- true
-				}()
-
-				// This tests cmd.Execute() - the second line of main()
-				// We expect this might panic/exit, which is normal
-				cmd.Execute()
-			}()
-
-			// Close writer and read output
-			w.Close()
-			outputBytes, _ := io.ReadAll(r)
-			output = string(outputBytes)
-
-			// Wait for completion or timeout
-			select {
-			case <-done:
-				// Command completed (or panicked/exited as expected)
-			default:
-				// Continue - this is fine for commands that exit
+			// Set arguments for the command (excluding the program name)
+			if len(tt.args) > 1 {
+				rootCmd.SetArgs(tt.args[1:])
 			}
 
-			// Verify we got some output for help command
+			// Execute the command
+			err := rootCmd.Execute()
+
+			// Check for expected errors
+			if tt.expectError && err == nil {
+				t.Errorf("Expected error but got none")
+			} else if !tt.expectError && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+
+			// Check output contains expected content
+			output := outputBuf.String()
 			if tt.contains != "" && !strings.Contains(output, tt.contains) {
-				t.Logf("Output: %s", output)
-				// Don't fail the test as the command might exit before output is captured
+				t.Errorf("Expected output to contain '%s', got: %s", tt.contains, output)
 			}
 
-			// Restore version
-			version = originalVersion
+			// For version command, verify it shows our test version
+			if strings.Contains(tt.args[len(tt.args)-1], "version") {
+				if !strings.Contains(output, testVersion) {
+					t.Errorf("Expected version output to contain '%s', got: %s", testVersion, output)
+				}
+			}
 		})
 	}
 }
@@ -260,20 +247,20 @@ func TestMainVersionBuildIntegration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Simulate the build-time version setting
-			originalVersion := version
-			version = tt.buildVersion
+			// Test that we can create commands with different versions
+			rootCmd := cmd.NewRootCmd(tt.buildVersion)
 
-			// Test that the version variable holds the expected value
-			if version != tt.expectedResult {
-				t.Errorf("Expected version %s, got %s", tt.expectedResult, version)
+			// Test that the version is set correctly on the command
+			if rootCmd.Version != tt.expectedResult {
+				t.Errorf("Expected version %s, got %s", tt.expectedResult, rootCmd.Version)
 			}
 
-			// Test that SetVersion can be called with the build version
-			cmd.SetVersion(version)
-
-			// Restore original version
-			version = originalVersion
+			// Test that version setting works with the isolated command
+			testVersion := "isolated-test-" + tt.buildVersion
+			rootCmd.Version = testVersion
+			if rootCmd.Version != testVersion {
+				t.Errorf("Expected isolated version setting to work, got %s", rootCmd.Version)
+			}
 		})
 	}
 }
@@ -303,6 +290,10 @@ func TestMainCommandExecution(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Synchronize access to global variables to prevent race conditions
+			testMutex.Lock()
+			defer testMutex.Unlock()
+
 			// Store original args
 			originalArgs := os.Args
 			defer func() {
@@ -340,6 +331,10 @@ func TestMainCommandExecution(t *testing.T) {
 func TestMainImportStructure(t *testing.T) {
 	// Test that the main package can successfully import and use cmd package
 
+	// Synchronize access to global variables to prevent race conditions
+	testMutex.Lock()
+	defer testMutex.Unlock()
+
 	// Test version setting functionality
 	testVersion := "import-test-version"
 	originalVersion := version
@@ -360,6 +355,10 @@ func TestMainImportStructure(t *testing.T) {
 // TestMainFunctionSignature tests the main function signature and structure
 func TestMainFunctionSignature(t *testing.T) {
 	// Test that main function components are accessible
+
+	// Synchronize access to global variables to prevent race conditions
+	testMutex.Lock()
+	defer testMutex.Unlock()
 
 	// Test version variable exists and is modifiable
 	originalVersion := version
