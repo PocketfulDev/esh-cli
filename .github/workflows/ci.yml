@@ -173,9 +173,9 @@ jobs:
         
         # Store coverage details for PR comment
         {
-          echo "coverage_details<<"
+          echo "coverage_details<<EOF"
           cat build/coverage-func.txt
-          echo ""
+          echo "EOF"
         } >> $GITHUB_OUTPUT
         
         # Generate GitHub Actions summary
