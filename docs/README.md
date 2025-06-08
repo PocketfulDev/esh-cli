@@ -12,6 +12,7 @@
 - **[Integrations](reference/INTEGRATIONS.md)** - Enterprise integration framework
 - **[Project Structure](reference/PROJECT_STRUCTURE.md)** - Complete project organization guide
 - **[Reorganization Summary](reference/REORGANIZATION_SUMMARY.md)** - Documentation of project restructuring
+- **[GitHub Actions Fixes](reference/GITHUB_ACTIONS_FIXES.md)** - Workflow troubleshooting and solutions
 
 ### ⚙️ Setup & Deployment
 - **[GitHub Integration](setup/GITHUB_TEST_INTEGRATION.md)** - CI/CD and GitHub Actions setup

@@ -33,17 +33,28 @@ jobs:
         echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
         
         # Determine color based on coverage
-        if (( $(echo "$COVERAGE >= 80" | bc -l) )); then
+        if [ $(echo "$COVERAGE >= 80" | awk '{print ($1 >= 80)}') -eq 1 ]; then
           echo "color=brightgreen" >> $GITHUB_OUTPUT
-        elif (( $(echo "$COVERAGE >= 60" | bc -l) )); then
+        elif [ $(echo "$COVERAGE >= 60" | awk '{print ($1 >= 60)}') -eq 1 ]; then
           echo "color=yellow" >> $GITHUB_OUTPUT
-        elif (( $(echo "$COVERAGE >= 30" | bc -l) )); then
+        elif [ $(echo "$COVERAGE >= 30" | awk '{print ($1 >= 30)}') -eq 1 ]; then
           echo "color=orange" >> $GITHUB_OUTPUT
         else
           echo "color=red" >> $GITHUB_OUTPUT
         fi
 
+    - name: Check if badge secrets are available
+      id: badge-check
+      run: |
+        if [ -n "${{ secrets.GIST_ID }}" ]; then
+          echo "badges-enabled=true" >> $GITHUB_OUTPUT
+        else
+          echo "badges-enabled=false" >> $GITHUB_OUTPUT
+          echo "⚠️ GIST_ID secret not configured - badges will be skipped"
+        fi
+
     - name: Create coverage badge
+      if: steps.badge-check.outputs.badges-enabled == 'true'
       uses: schneegans/dynamic-badges-action@v1.7.0
       with:
         auth: ${{ secrets.GITHUB_TOKEN }}
@@ -60,6 +71,7 @@ jobs:
         echo "count=${TEST_COUNT}" >> $GITHUB_OUTPUT
 
     - name: Create test count badge
+      if: steps.badge-check.outputs.badges-enabled == 'true'
       uses: schneegans/dynamic-badges-action@v1.7.0
       with:
         auth: ${{ secrets.GITHUB_TOKEN }}
@@ -82,6 +94,7 @@ jobs:
         fi
 
     - name: Create build status badge
+      if: steps.badge-check.outputs.badges-enabled == 'true'
       uses: schneegans/dynamic-badges-action@v1.7.0
       with:
         auth: ${{ secrets.GITHUB_TOKEN }}

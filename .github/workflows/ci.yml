@@ -49,21 +49,99 @@ jobs:
       run: |
         # Create build directory for outputs
         mkdir -p build
-        # Run tests with JSON output for better reporting
-        go test -v -race -coverprofile=build/coverage.out -covermode=atomic -json ./... > build/test-results.json
-        go tool cover -html=build/coverage.out -o build/coverage.html
         
-        # Generate coverage report for different formats
+        # Run tests with JSON output for better reporting
+        echo "🧪 Running tests with coverage and JSON output..."
+        go test -v -race -coverprofile=build/coverage.out -covermode=atomic -json ./... > build/test-results.json
+        
+        # Verify the JSON file was created and has content
+        if [ -f "build/test-results.json" ]; then
+          echo "✅ test-results.json created successfully"
+          echo "📊 File size: $(wc -c < build/test-results.json) bytes"
+          echo "📄 Line count: $(wc -l < build/test-results.json) lines"
+        else
+          echo "❌ test-results.json was not created"
+          ls -la build/
+          exit 1
+        fi
+        
+        # Generate coverage reports
+        go tool cover -html=build/coverage.out -o build/coverage.html
         go tool cover -func=build/coverage.out > build/coverage-func.txt
+        
+        # Convert Go test JSON to JUnit XML format for better test reporter compatibility
+        echo "🔄 Converting Go test results to JUnit XML format..."
+        go install github.com/jstemmer/go-junit-report/v2@latest
+        cat build/test-results.json | go-junit-report -set-exit-code > build/test-results.xml
+        
+        echo "📄 Generated test-results.xml for better compatibility"
+        if [ -f "build/test-results.xml" ]; then
+          echo "✅ XML conversion successful"
+          echo "📊 XML file size: $(wc -c < build/test-results.xml) bytes"
+        else
+          echo "⚠️ XML conversion failed, will use JSON format"
+        fi
 
-    - name: Parse test results
+    - name: Verify test results file for reporter
+      if: success() || failure()
+      run: |
+        echo "🔍 Verifying test results file for dorny/test-reporter..."
+        echo "📂 Current working directory: $(pwd)"
+        echo "📁 Directory contents:"
+        ls -la build/
+        echo ""
+        if [ -f "build/test-results.json" ]; then
+          echo "✅ test-results.json exists at: $(pwd)/build/test-results.json"
+          echo "📊 File size: $(stat -f%z build/test-results.json 2>/dev/null || stat -c%s build/test-results.json) bytes"
+          echo "📄 First few lines to verify format:"
+          head -5 build/test-results.json
+          echo ""
+          echo "📄 Last few lines:"
+          tail -5 build/test-results.json
+          echo ""
+          echo "🧮 Line count: $(wc -l < build/test-results.json) lines"
+          echo "🔧 File permissions: $(ls -la build/test-results.json)"
+        else
+          echo "❌ test-results.json not found"
+          echo "📁 Build directory contents:"
+          ls -la build/ || echo "Build directory doesn't exist"
+          exit 1
+        fi
+        
+    - name: Parse test results (XML format)
       uses: dorny/test-reporter@v2
       if: success() || failure()
       with:
-        name: Go Tests
-        path: build/test-results.json
+        name: Go Tests (JUnit XML)
+        path: './build/test-results.xml'
+        reporter: java-junit
+        fail-on-error: false  # Don't fail if test reporter has issues
+        working-directory: '.'
+        
+    - name: Parse test results (JSON format fallback)
+      uses: dorny/test-reporter@v2
+      if: (success() || failure()) && hashFiles('./build/test-results.xml') == ''
+      with:
+        name: Go Tests (JSON)
+        path: './build/test-results.json'
         reporter: golang-json
-        fail-on-error: true
+        fail-on-error: false  # Don't fail if test reporter has issues
+        working-directory: '.'
+        
+    - name: Verify test results file
+      if: success() || failure()
+      run: |
+        echo "🔍 Checking test results file..."
+        if [ -f "build/test-results.json" ]; then
+          echo "✅ test-results.json exists"
+          echo "📊 File size: $(stat -f%z build/test-results.json 2>/dev/null || stat -c%s build/test-results.json) bytes"
+          echo "📄 First few lines:"
+          head -3 build/test-results.json
+        else
+          echo "❌ test-results.json not found"
+          echo "📁 Build directory contents:"
+          ls -la build/ || echo "Build directory doesn't exist"
+        fi
 
     - name: Upload test results and coverage
       uses: actions/upload-artifact@v4
@@ -72,6 +150,7 @@ jobs:
         name: test-and-coverage-results
         path: |
           build/test-results.json
+          build/test-results.xml
           build/coverage.out
           build/coverage.html
           build/coverage-func.txt
@@ -103,11 +182,11 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "| Metric | Value | Status |" >> $GITHUB_STEP_SUMMARY
         echo "|--------|--------|--------|" >> $GITHUB_STEP_SUMMARY
-        echo "| Overall Coverage | ${COVERAGE}% | $([ $(echo "$COVERAGE >= 30" | bc -l) -eq 1 ] && echo "✅ Pass" || echo "⚠️ Below Target") |" >> $GITHUB_STEP_SUMMARY
-        echo "| Utils Package | ${UTILS_COVERAGE}% | $([ $(echo "$UTILS_COVERAGE >= 60" | bc -l) -eq 1 ] && echo "✅ Pass" || echo "⚠️ Below Target") |" >> $GITHUB_STEP_SUMMARY
+        echo "| Overall Coverage | ${COVERAGE}% | $([ $(echo "$COVERAGE >= 30" | awk '{print ($1 >= 30)}') -eq 1 ] && echo "✅ Pass" || echo "⚠️ Below Target") |" >> $GITHUB_STEP_SUMMARY
+        echo "| Utils Package | ${UTILS_COVERAGE}% | $([ $(echo "$UTILS_COVERAGE >= 60" | awk '{print ($1 >= 60)}') -eq 1 ] && echo "✅ Pass" || echo "⚠️ Below Target") |" >> $GITHUB_STEP_SUMMARY
         
         # For CLI tools, we set a lower threshold since main execution paths require integration testing
-        if (( $(echo "$COVERAGE < 30" | bc -l) )); then
+        if [ $(echo "$COVERAGE < 30" | awk '{print ($1 < 30)}') -eq 1 ]; then
           echo "⚠️ Warning: Test coverage is below 30% threshold" | tee -a $GITHUB_STEP_SUMMARY
           echo "Current coverage: ${COVERAGE}%" | tee -a $GITHUB_STEP_SUMMARY
           echo "Note: CLI tools often have lower unit test coverage due to integration-heavy main logic" | tee -a $GITHUB_STEP_SUMMARY
@@ -115,7 +194,7 @@ jobs:
           echo "✅ Test coverage meets threshold: ${COVERAGE}%" | tee -a $GITHUB_STEP_SUMMARY
         fi
         
-        if (( $(echo "$UTILS_COVERAGE < 60" | bc -l) )); then
+        if [ $(echo "$UTILS_COVERAGE < 60" | awk '{print ($1 < 60)}') -eq 1 ]; then
           echo "⚠️ Warning: Utils package coverage is below 60%" | tee -a $GITHUB_STEP_SUMMARY
         else
           echo "✅ Utils package coverage is good: ${UTILS_COVERAGE}%" | tee -a $GITHUB_STEP_SUMMARY
@@ -125,7 +204,7 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📋 Coverage Details" >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-        cat coverage-func.txt >> $GITHUB_STEP_SUMMARY
+        cat build/coverage-func.txt >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
     - name: Build test and add to summary
@@ -140,6 +219,30 @@ jobs:
         echo "- ✅ Binary compiled successfully" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Version command works" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Help command works" >> $GITHUB_STEP_SUMMARY
+
+    # Add coverage comment to PR (only for pull requests)
+    - name: Comment coverage on PR
+      if: github.event_name == 'pull_request'
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        header: coverage
+        message: |
+          ## 📊 Test Coverage Report
+          
+          | Metric | Value | Status |
+          |--------|--------|--------|
+          | Overall Coverage | ${{ steps.coverage.outputs.coverage }}% | ${{ steps.coverage.outputs.coverage >= 30 && '✅ Pass' || '⚠️ Below Target (30%)' }} |
+          | Utils Package | ${{ steps.coverage.outputs.utils_coverage }}% | ${{ steps.coverage.outputs.utils_coverage >= 60 && '✅ Pass' || '⚠️ Below Target (60%)' }} |
+          
+          <details>
+          <summary>📋 Detailed Coverage</summary>
+          
+          ```
+          ${{ steps.coverage.outputs.coverage_details }}
+          ```
+          </details>
+          
+          > 💡 **Note**: CLI tools often have lower overall coverage due to integration-heavy main logic. The utils package contains the core business logic and should maintain higher coverage.
 
   cross-platform-build:
     runs-on: ubuntu-latest
@@ -177,27 +280,3 @@ jobs:
         
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "✅ All cross-platform builds successful"
-
-    # Add coverage comment to PR (only for pull requests)
-    - name: Comment coverage on PR
-      if: github.event_name == 'pull_request'
-      uses: marocchino/sticky-pull-request-comment@v2
-      with:
-        header: coverage
-        message: |
-          ## 📊 Test Coverage Report
-          
-          | Metric | Value | Status |
-          |--------|--------|--------|
-          | Overall Coverage | ${{ steps.coverage.outputs.coverage }}% | ${{ steps.coverage.outputs.coverage >= 30 && '✅ Pass' || '⚠️ Below Target (30%)' }} |
-          | Utils Package | ${{ steps.coverage.outputs.utils_coverage }}% | ${{ steps.coverage.outputs.utils_coverage >= 60 && '✅ Pass' || '⚠️ Below Target (60%)' }} |
-          
-          <details>
-          <summary>📋 Detailed Coverage</summary>
-          
-          ```
-          ${{ steps.coverage.outputs.coverage_details }}
-          ```
-          </details>
-          
-          > 💡 **Note**: CLI tools often have lower overall coverage due to integration-heavy main logic. The utils package contains the core business logic and should maintain higher coverage.

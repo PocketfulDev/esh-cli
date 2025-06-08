@@ -98,9 +98,22 @@ go tool cover -func=coverage.out | grep total
 ## 🛠 Setup Requirements
 
 ### For Badge Generation (Optional):
-1. Create a GitHub Gist for badge storage
-2. Add `GIST_ID` secret to repository settings
-3. Enable badge update workflow
+1. **Create a GitHub Gist for badge storage**:
+   - Go to https://gist.github.com
+   - Create a new gist with any filename (e.g., `badges.md`)
+   - Copy the Gist ID from the URL (e.g., `abc123def456`)
+
+2. **Add `GIST_ID` secret to repository settings**:
+   - Go to Repository Settings → Secrets and variables → Actions
+   - Add new repository secret: `GIST_ID` = `your-gist-id`
+   - The badge workflow will skip if this secret is not configured
+
+3. **Enable badge update workflow**:
+   - Workflow runs automatically on push to main
+   - Can be triggered manually from Actions tab
+   - Badges will be created in the specified gist
+
+**Note**: If `GIST_ID` is not configured, the badge generation steps will be skipped without failing the workflow.
 
 ### For PR Comments:
 - No additional setup required
@@ -136,9 +149,21 @@ go tool cover -func=coverage.out | grep total
 - Check for flaky tests
 
 ### Troubleshooting:
+
+#### Badge Generation Issues:
 - **Badge Not Updating**: Check `GIST_ID` secret and permissions
+- **JSON Parse Error**: Usually indicates authentication issues with GitHub API
+- **Invalid format**: Coverage percentage extraction failed - check coverage file paths
+
+#### Coverage Calculation Issues:
+- **Syntax Error in bc**: Fixed in latest version - now uses AWK for calculations
+- **Missing coverage-func.txt**: Ensure file is generated in `build/` directory
+- **Invalid format errors**: Coverage extraction logic has been updated
+
+#### Test Execution Issues:
 - **Coverage Low**: Focus on utils package tests
 - **Tests Flaky**: Add race detection and improve test isolation
+- **Build failures**: Ensure all dependencies are properly cached
 
 ## 📚 Additional Resources
 
