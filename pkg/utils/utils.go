@@ -136,6 +136,44 @@ func IncrementTag(tag string, hotFix bool) string {
 	prefix := strings.Join(parts[:len(parts)-1], "_")
 
 	versionReleaseParts := strings.Split(versionPart, "-")
+
+	// Handle tags without release suffix (e.g., dev_0.1.0)
+	if len(versionReleaseParts) == 1 {
+		// Tag has no release suffix, so increment the semantic version itself
+		version := versionReleaseParts[0]
+
+		// Parse semantic version parts
+		versionMatches := VersionPattern.FindStringSubmatch(version)
+		if len(versionMatches) != 4 {
+			return ""
+		}
+
+		major, err := strconv.Atoi(versionMatches[1])
+		if err != nil {
+			return ""
+		}
+		minor, err := strconv.Atoi(versionMatches[2])
+		if err != nil {
+			return ""
+		}
+		patch, err := strconv.Atoi(versionMatches[3])
+		if err != nil {
+			return ""
+		}
+
+		if hotFix {
+			// For hotfix, increment patch version
+			patch++
+		} else {
+			// For regular increment, increment patch version
+			patch++
+		}
+
+		newVersion := fmt.Sprintf("%d.%d.%d", major, minor, patch)
+		return fmt.Sprintf("%s_%s", prefix, newVersion)
+	}
+
+	// Handle tags with release suffix (e.g., dev_0.1.0-0)
 	if len(versionReleaseParts) != 2 {
 		return ""
 	}

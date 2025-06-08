@@ -60,9 +60,12 @@ func TestIncrementTag(t *testing.T) {
 		{"stg6_1.2.0-0", true, "stg6_1.2.0-0.1"},
 		{"stg6_1.2.0-1.2", true, "stg6_1.2.0-1.3"},
 		{"service_stg6_1.2.0-0", false, "service_stg6_1.2.0-1"},
-		{"", false, ""},            // empty tag
-		{"invalid_tag", false, ""}, // invalid format
-		{"dev_0.0.1", false, ""},   // invalid format (no dash)
+		{"dev_0.1.0", false, "dev_0.1.1"},    // tag without release suffix -> increment semantic version
+		{"dev_0.1.0", true, "dev_0.1.1"},     // tag without release suffix -> increment semantic version (hotfix)
+		{"stg6_1.2.0", false, "stg6_1.2.1"},  // tag without release suffix -> increment semantic version
+		{"stg6_1.2.9", false, "stg6_1.2.10"}, // tag without release suffix -> increment patch
+		{"", false, ""},                      // empty tag
+		{"invalid_tag", false, ""},           // invalid format
 	}
 
 	for _, tt := range tests {
